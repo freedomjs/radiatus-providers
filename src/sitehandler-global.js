@@ -31,7 +31,6 @@ GlobalSiteHandler.prototype.addConnection = function(username, ws) {
   ws.on('message', function(myUsername, msg) {
     try {
       var parsedMsg = JSON.parse(msg);
-      console.log('received: %s', parsedMsg);
       if (this.clients.hasOwnProperty(parsedMsg.to)) {
         this.clients[parsedMsg.to].send(JSON.stringify({
           'cmd': 'message',
