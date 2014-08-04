@@ -10,12 +10,14 @@ var cookieParser = require('cookie-parser');
 var session = require('express-session');
 var charlatan = require('charlatan');
 var WebSocketServer = require('ws').Server;
+var GlobalSiteHandler = require('./src/sitehandler-global');
 
 /** APPLICATION **/
 var app = express();
 var server = http.createServer(app);
 var wss = new WebSocketServer({server: server});
 var siteHandlers = {};
+charlatan.setLocale('en-us');
 
 /** OPTIONS PARSING **/
 var opts = require('nomnom')
@@ -31,34 +33,51 @@ var opts = require('nomnom')
     default: 8082
   }).parse();
 
+/** LOGGER **/
+if (opts.debug) {
+  app.use(morgan('dev'));
+} else {
+  app.use(morgan('common'));
+}
 
-app.get('/', function(req, res) {
-  res.send('Hello world');
-});
+/** STATIC CONTENT **/
+app.use(express.static(path.join(__dirname, 'src/providers')));
+
+/** SESSIONS/COOKIES **/
+/**
+app.use(cookieParser(config.sessionSecret));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(methodOverride());
+app.use(session({
+  store: sessionStore,
+  secret: config.sessionSecret,
+  name: config.cookieKey,
+  resave: true,
+  saveUninitialized: true
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+**/
+
 
 wss.on('connection', function(ws) {
-  console.log('opened connection');
-  console.log(ws.upgradeReq.headers);
+  //console.log(ws.upgradeReq.headers.origin);
+  //console.log(ws.upgradeReq.url);
 
   var origin = ws.upgradeReq.headers.origin;
-  if () {
-
+  var url = ws.upgradeReq.url;
+  var appid = origin + url;
+  if (!siteHandlers.hasOwnProperty(appid)) {
+    siteHandlers[appid] = new GlobalSiteHandler();
   }
-
-  ws.on('message', function(msg) {
-    console.log('!!!');
-    console.log('received: %s', msg);
-  });
-  ws.on('close', function() {
-    console.log('closed connection');
-  });
+  siteHandlers[appid].addConnection(charlatan.Name.name(), ws);
 });
 
-/**
-io.on('connection', function(socket){
-  console.log('a user connected');
+app.get('*', function(req, res) {
+  res.status = 404;
+  res.send('404 - Not Found');
 });
-**/
 
 server.listen(opts.port, function() {
   console.log("Radiatus Providers Server listening on port " + opts.port);

@@ -25,11 +25,12 @@ function WSSocialProvider(dispatchEvent, webSocket) {
     this.WS_URL = 'ws://p2pbr.com:8082/route/';
   } else {
     this.WS_URL = 'wss://p2pbr.com/route/';
+    this.WS_URL = 'ws://localhost:8082/route/';
   }
   this.social= freedom.social();
 
-  this.conn = null;   // Web Socket
-  this.id = null;     // userId of this user
+  this.conn = null;     // Web Socket
+  this.userId = null;   // userId of this user
   
   //Note that in this.websocket, there is a 1-1 relationship between user and client
   this.users = {};    // List of seen users (<user_profile>)
@@ -73,7 +74,7 @@ WSSocialProvider.prototype.login = function(loginOpts, continuation) {
   }.bind(this, finishLogin));
   this.conn.on("onClose", function (cont, msg) {
     this.conn = null;
-    this.changeRoster(this.id, false);
+    this.changeRoster(this.userId, false);
   }.bind(this, finishLogin));
 
 };
@@ -157,13 +158,13 @@ WSSocialProvider.prototype.sendMessage = function(to, msg, continuation) {
    **/
 WSSocialProvider.prototype.logout = function(continuation) {
   if (this.conn === null) { // We may not have been logged in
-    this.changeRoster(this.id, false);
+    this.changeRoster(this.userId, false);
     continuation(undefined, this.err("OFFLINE"));
     return;
   }
   this.conn.on("onClose", function(continuation) {
     this.conn = null;
-    this.changeRoster(this.id, false);
+    this.changeRoster(this.userId, false);
     continuation();
   }.bind(this, continuation));
   this.conn.close();
@@ -240,11 +241,11 @@ WSSocialProvider.prototype.onMessage = function(finishLogin, msg) {
   // If state information from the server
   // Store my own ID and all known users at the time
   if (msg.cmd === 'state') {
-    this.id = msg.id;
-    for (i = 0; i < msg.msg.length; i += 1) {
-      this.changeRoster(msg.msg[i], true);
+    this.userId = msg.userId;
+    for (i = 0; i < msg.roster.length; i += 1) {
+      this.changeRoster(msg.roster[i], true);
     }
-    finishLogin.finish(this.changeRoster(this.id, true));
+    finishLogin.finish(this.changeRoster(this.userId, true));
   // If directed message, emit event
   } else if (msg.cmd === 'message') {
     this.dispatchEvent('onMessage', {
@@ -253,7 +254,7 @@ WSSocialProvider.prototype.onMessage = function(finishLogin, msg) {
     });
   // Roster change event
   } else if (msg.cmd === 'roster') {
-    this.changeRoster(msg.id, msg.online);
+    this.changeRoster(msg.userId, msg.online);
   // No idea what this message is, but let's keep track of who it's from
   } else if (msg.from) {
     this.changeRoster(msg.from, true);

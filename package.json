@@ -17,6 +17,7 @@
   },
   "scripts": {
     "start": "node app.js",
+    "debug": "supervisor -i node_modules/ -- app.js",
     "test": "grunt test"
   },
   "main": "Gruntfile.js",
