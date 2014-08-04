@@ -29,8 +29,21 @@ GlobalSiteHandler.prototype.addConnection = function(username, ws) {
   this.clients[username] = ws;
 
   ws.on('message', function(myUsername, msg) {
-    console.log('!!!');
-    console.log('received: %s', msg);
+    try {
+      var parsedMsg = JSON.parse(msg);
+      console.log('received: %s', parsedMsg);
+      if (this.clients.hasOwnProperty(parsedMsg.to)) {
+        this.clients[parsedMsg.to].send(JSON.stringify({
+          'cmd': 'message',
+          'from': myUsername,
+          'msg': parsedMsg.msg
+        }));
+      } else {
+        console.error('Failure sending message to ' + parsedMsg.to);
+      }
+    } catch (e) {
+      console.error(e);
+    }
   }.bind(this, username));
   ws.on('close', function(myUsername) {
     console.log(myUsername + ': closed connection');

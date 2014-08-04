@@ -235,28 +235,32 @@ WSSocialProvider.prototype.changeRoster = function(id, stat) {
  * @return nothing
  **/
 WSSocialProvider.prototype.onMessage = function(finishLogin, msg) {
-  msg = JSON.parse(msg.text);
+  try {
+    msg = JSON.parse(msg.text);
 
-  // If state information from the server
-  // Store my own ID and all known users at the time
-  if (msg.cmd === 'state') {
-    this.userId = msg.userId;
-    for (var i = 0; i < msg.roster.length; i += 1) {
-      this.changeRoster(msg.roster[i], true);
+    // If state information from the server
+    // Store my own ID and all known users at the time
+    if (msg.cmd === 'state') {
+      this.userId = msg.userId;
+      for (var i = 0; i < msg.roster.length; i += 1) {
+        this.changeRoster(msg.roster[i], true);
+      }
+      finishLogin.finish(this.changeRoster(this.userId, true));
+    // If directed message, emit event
+    } else if (msg.cmd === 'message') {
+      this.dispatchEvent('onMessage', {
+        from: this.changeRoster(msg.from, true),
+        message: msg.msg
+      });
+    // Roster change event
+    } else if (msg.cmd === 'roster') {
+      this.changeRoster(msg.userId, msg.online);
+    // No idea what this message is, but let's keep track of who it's from
+    } else if (msg.from) {
+      this.changeRoster(msg.from, true);
     }
-    finishLogin.finish(this.changeRoster(this.userId, true));
-  // If directed message, emit event
-  } else if (msg.cmd === 'message') {
-    this.dispatchEvent('onMessage', {
-      from: this.changeRoster(msg.from, true),
-      message: msg.msg
-    });
-  // Roster change event
-  } else if (msg.cmd === 'roster') {
-    this.changeRoster(msg.userId, msg.online);
-  // No idea what this message is, but let's keep track of who it's from
-  } else if (msg.from) {
-    this.changeRoster(msg.from, true);
+  } catch (e) {
+    console.error(e);
   }
 };
 
