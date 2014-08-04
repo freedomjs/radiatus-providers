@@ -6,7 +6,7 @@
   },
   "dependencies": {
     "socialprovider": {
-      "url": "../src/providers/social.ws.json",
+      "url": "../src/providers/social.radiatus.json",
       "api": "social"
     }
   }
