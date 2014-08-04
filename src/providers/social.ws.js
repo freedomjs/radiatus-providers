@@ -235,14 +235,13 @@ WSSocialProvider.prototype.changeRoster = function(id, stat) {
  * @return nothing
  **/
 WSSocialProvider.prototype.onMessage = function(finishLogin, msg) {
-  var i;
   msg = JSON.parse(msg.text);
 
   // If state information from the server
   // Store my own ID and all known users at the time
   if (msg.cmd === 'state') {
     this.userId = msg.userId;
-    for (i = 0; i < msg.roster.length; i += 1) {
+    for (var i = 0; i < msg.roster.length; i += 1) {
       this.changeRoster(msg.roster[i], true);
     }
     finishLogin.finish(this.changeRoster(this.userId, true));

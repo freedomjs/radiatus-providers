@@ -15,11 +15,11 @@ GlobalSiteHandler.prototype.getAllUsers = function() {
 GlobalSiteHandler.prototype.broadcastStatus = function(username, online) {
   for (var k in this.clients) {
     if (this.clients.hasOwnProperty(k)) {
-      this.clients[k].send({
+      this.clients[k].send(JSON.stringify({
         'cmd': 'roster',
         'userId': username,
         'online': online
-      });
+      }));
     }
   }
 };
@@ -39,11 +39,11 @@ GlobalSiteHandler.prototype.addConnection = function(username, ws) {
   }.bind(this, username));
   
   // Send back the global buddy list
-  ws.send({
+  ws.send(JSON.stringify({
     'cmd': "state",
     'userId': username,
     'roster': this.getAllUsers()
-  });
+  }));
   //Inform others of the new guy
   this.broadcastStatus(username, true);
 };
