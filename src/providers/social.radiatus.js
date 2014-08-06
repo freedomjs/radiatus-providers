@@ -26,6 +26,7 @@ function WSSocialProvider(dispatchEvent, webSocket) {
   } else {
     this.WS_URL = 'wss://p2pbr.com/route/';
     this.WS_URL = 'ws://localhost:8082/route/';
+    this.WS_QUERYSTR = '?freedomAPI=social';
   }
   this.social= freedom.social();
 
@@ -64,7 +65,13 @@ WSSocialProvider.prototype.login = function(loginOpts, continuation) {
     finishLogin.finish(undefined, this.err("LOGIN_ALREADYONLINE"));
     return;
   }
-  this.conn = this.websocket(this.WS_URL + loginOpts.agent);
+  //Scrub agent to be alphanumeric only
+  var agent = '';
+  if (typeof loginOpts !== 'undefined' &&
+      typeof loginOpts.agent !== 'undefined') {
+    agent = loginOpts.agent.replace(/[^a-z0-9]/gi, '');   
+  }
+  this.conn = this.websocket(this.WS_URL + agent + this.WS_QUERYSTR);
   // Save the continuation until we get a status message for
   // successful login.
   this.conn.on("onMessage", this.onMessage.bind(this, finishLogin));
