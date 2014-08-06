@@ -4,6 +4,7 @@
 
 var path = require('path');
 var urlParser = require('url');
+var queryParser = require('querystring');
 var express = require('express');
 var http = require('http');
 var morgan  = require('morgan');
@@ -16,6 +17,7 @@ var GlobalSiteHandler = require('./src/sitehandler-global');
 /** APPLICATION **/
 var app = express();
 var server = http.createServer(app);
+var config = require('./config');
 var wss = new WebSocketServer({server: server});
 var siteHandlers = {};
 charlatan.setLocale('en-us');
@@ -69,13 +71,27 @@ wss.on('connection', function(ws) {
   var origin = ws.upgradeReq.headers.origin;
   var url = ws.upgradeReq.url;
   var parsedUrl = urlParser.parse(url);
-  console.log(parsedUrl);
+  var parsedQuery = queryParser.parse(parsedUrl.query);
+  console.log(parsedQuery);
 
-  var appid = origin + parsedUrl.pathname;
+  var appid, username;
+  // 2 global buddylists:
+  // - 1 for anonymous users
+  // - 1 for users with valid Radiatus accounts
+  if (parsedQuery.hasOwnProperty('radiatusUsername') &&
+      parsedQuery.hasOwnProperty('radiatusSecret') &&
+      parsedQuery.radiatusSecret == config.radiatusSecret) {
+    username = parsedQuery.radiatusUsername;
+    appId = 'Auth:' + origin + parsedUrl.pathname;
+  } else {
+    username = charlatan.Name.name();
+    appid = 'Anon:' + origin + parsedUrl.pathname;
+  }
+
   if (!siteHandlers.hasOwnProperty(appid)) {
     siteHandlers[appid] = new GlobalSiteHandler();
   }
-  siteHandlers[appid].addConnection(charlatan.Name.name(), ws);
+  siteHandlers[appid].addConnection(username, ws);
 });
 
 app.get('*', function(req, res) {
