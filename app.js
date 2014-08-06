@@ -3,6 +3,7 @@
  **/
 
 var path = require('path');
+var urlParser = require('url');
 var express = require('express');
 var http = require('http');
 var morgan  = require('morgan');
@@ -63,11 +64,14 @@ app.use(passport.session());
 
 wss.on('connection', function(ws) {
   //console.log(ws.upgradeReq.headers.origin);
-  //console.log(ws.upgradeReq.url);
+  console.log(ws.upgradeReq.url);
 
   var origin = ws.upgradeReq.headers.origin;
   var url = ws.upgradeReq.url;
-  var appid = origin + url;
+  var parsedUrl = urlParser.parse(url);
+  console.log(parsedUrl);
+
+  var appid = origin + parsedUrl.pathname;
   if (!siteHandlers.hasOwnProperty(appid)) {
     siteHandlers[appid] = new GlobalSiteHandler();
   }
