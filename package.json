@@ -1,7 +1,7 @@
 {
   "name": "radiatus-providers",
   "description": "Social/Transport/Storage Providers",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "homepage": "http://freedomjs.org",
   "bugs": {
     "url": "http://github.com/freedomjs/radiatus-providers/issues",
@@ -37,7 +37,8 @@
     "karma-unicorn-reporter": "^0.1.4",
     "karma-story-reporter": "^0.2.2",
     "grunt-bump": "0.0.14",
-    "grunt-npm": "0.0.2"
+    "grunt-npm": "0.0.2",
+    "freedom": "^0.5.4"
   },
   "dependencies": {
     "express": "~4.6.1",
