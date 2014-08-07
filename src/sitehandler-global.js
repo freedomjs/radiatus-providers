@@ -15,18 +15,21 @@ GlobalSiteHandler.prototype.getAllUsers = function() {
 GlobalSiteHandler.prototype.broadcastStatus = function(username, online) {
   for (var k in this.clients) {
     if (this.clients.hasOwnProperty(k)) {
-      this.clients[k].send(JSON.stringify({
-        'cmd': 'roster',
-        'userId': username,
-        'online': online
-      }));
+      try {
+        this.clients[k].send(JSON.stringify({
+          'cmd': 'roster',
+          'userId': username,
+          'online': online
+        }));
+      } catch (e) {
+        console.error(e);
+      }
     }
   }
 };
 
 GlobalSiteHandler.prototype.addConnection = function(username, ws) {
   console.log(username + ': opened connection');
-  this.clients[username] = ws;
 
   ws.on('message', function(myUsername, msg) {
     try {
@@ -56,8 +59,10 @@ GlobalSiteHandler.prototype.addConnection = function(username, ws) {
     'userId': username,
     'roster': this.getAllUsers()
   }));
-  //Inform others of the new guy
+  // Inform others of the new guy
   this.broadcastStatus(username, true);
+  // Store new client
+  this.clients[username] = ws;
 };
 
 module.exports = GlobalSiteHandler;
