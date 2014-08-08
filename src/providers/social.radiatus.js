@@ -22,11 +22,11 @@ function WSSocialProvider(dispatchEvent, webSocket) {
 
   this.websocket = freedom["core.websocket"] || webSocket;
   if (typeof DEBUG !== 'undefined' && DEBUG) {
-    this.WS_URL = 'ws://p2pbr.com:8082/route/';
     this.WS_URL = 'ws://localhost:8082/route/';
     this.WS_QUERYSTR = '?freedomAPI=social';
   } else {
     this.WS_URL = 'wss://p2pbr.com/route/';
+    // TBD where this sits in production
     this.WS_URL = 'ws://localhost:8082/route/';
     this.WS_QUERYSTR = '?freedomAPI=social';
   }

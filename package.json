@@ -38,7 +38,9 @@
     "karma-story-reporter": "^0.2.2",
     "grunt-bump": "0.0.14",
     "grunt-npm": "0.0.2",
-    "freedom": "^0.5.4"
+    "freedom": "^0.5.4",
+    "grunt-supervisor": "^0.2.4",
+    "grunt-concurrent": "^0.5.0"
   },
   "dependencies": {
     "express": "~4.6.1",

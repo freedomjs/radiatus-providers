@@ -72,6 +72,24 @@ module.exports = function(grunt) {
       options: { '-W069': true }
     },
     clean: [],
+    supervisor: {
+      target: {
+        script: "app.js",
+        options: {
+          ignore: [ './node_modules/' ]
+        }
+      }
+    },
+    concurrent: {
+      karmasingle: {
+        tasks: [ 'supervisor', 'karma:single' ],
+        options: { logConcurrentOutput: true }
+      },
+      karmawatch: { 
+        tasks: [ 'supervisor', 'karma:watch' ],
+        options: { logConcurrentOutput: true }
+      }
+    },
     connect: {
       default: {
         options: {
@@ -118,19 +136,22 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-npm');
   grunt.loadNpmTasks('grunt-bump');
   grunt.loadNpmTasks('grunt-karma');
+  grunt.loadNpmTasks('grunt-supervisor');
+  grunt.loadNpmTasks('grunt-concurrent');
 
   // Default tasks.
   grunt.registerTask('build', [
     'jshint',
-    'connect:default'
   ]);
   grunt.registerTask('test', [
     'build',
-    'karma:single'
+    'connect:default',
+    'concurrent:karmasingle'
   ]);
   grunt.registerTask('debug', [
     'build',
-    'karma:watch'
+    'connect:default',
+    'concurrent:karmawatch'
   ]);
   grunt.registerTask('demo', [
     'connect:demo',
@@ -146,7 +167,7 @@ module.exports = function(grunt) {
     ]);
   });
 
-  grunt.registerTask('default', [ 'jshint' ]);
+  grunt.registerTask('default', [ 'build' ]);
 };
 
 module.exports.FILES = FILES;
