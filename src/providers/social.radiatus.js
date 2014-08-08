@@ -12,12 +12,12 @@
  * - no reliability
  * - out of order delivery
  * - ephemeral userIds and clientIds
- * @class WSSocialProvider
+ * @class RadiatusSocialProvider
  * @constructor
  * @param {Function} dispatchEvent callback to signal events
  * @param {WebSocket} webSocket Alternative webSocket implementation for tests
  **/
-function WSSocialProvider(dispatchEvent, webSocket) {
+function RadiatusSocialProvider(dispatchEvent, webSocket) {
   this.dispatchEvent = dispatchEvent;
 
   this.websocket = freedom["core.websocket"] || webSocket;
@@ -50,7 +50,7 @@ function WSSocialProvider(dispatchEvent, webSocket) {
  * @param {Object} loginOptions
  * @return {Object} status - Same schema as 'onStatus' events
  **/
-WSSocialProvider.prototype.login = function(loginOpts, continuation) {
+RadiatusSocialProvider.prototype.login = function(loginOpts, continuation) {
   // Wrap the continuation so that it will only be called once by
   // onmessage in the case of success.
   var finishLogin = {
@@ -103,7 +103,7 @@ WSSocialProvider.prototype.login = function(loginOpts, continuation) {
  * } List of <user_profile>s indexed by userId
  *   On failure, rejects with an error code (see above)
  **/
-WSSocialProvider.prototype.getUsers = function(continuation) {
+RadiatusSocialProvider.prototype.getUsers = function(continuation) {
   if (this.conn === null) {
     continuation(undefined, this.err("OFFLINE"));
     return;
@@ -126,7 +126,7 @@ WSSocialProvider.prototype.getUsers = function(continuation) {
  * } List of <client_state>s indexed by clientId
  *   On failure, rejects with an error code (see above)
  **/
-WSSocialProvider.prototype.getClients = function(continuation) {
+RadiatusSocialProvider.prototype.getClients = function(continuation) {
   if (this.conn === null) {
     continuation(undefined, this.err("OFFLINE"));
     return;
@@ -144,7 +144,7 @@ WSSocialProvider.prototype.getClients = function(continuation) {
  * @param {String} destination_id - target
  * @return nothing
  **/
-WSSocialProvider.prototype.sendMessage = function(to, msg, continuation) {
+RadiatusSocialProvider.prototype.sendMessage = function(to, msg, continuation) {
   if (this.conn === null) {
     continuation(undefined, this.err("OFFLINE"));
     return;
@@ -165,7 +165,7 @@ WSSocialProvider.prototype.sendMessage = function(to, msg, continuation) {
    * @method logout
    * @return {Object} status - same schema as 'onStatus' events
    **/
-WSSocialProvider.prototype.logout = function(continuation) {
+RadiatusSocialProvider.prototype.logout = function(continuation) {
   if (this.conn === null) { // We may not have been logged in
     this.changeRoster(this.userId, false);
     continuation(undefined, this.err("OFFLINE"));
@@ -195,7 +195,7 @@ WSSocialProvider.prototype.logout = function(continuation) {
  *                          "ONLINE_WITH_OTHER_APP"
  * @return {Object} - same schema as 'onStatus' event
  **/
-WSSocialProvider.prototype.changeRoster = function(id, stat) {
+RadiatusSocialProvider.prototype.changeRoster = function(id, stat) {
   var newStatus, result = {
     userId: id,
     clientId: id,
@@ -243,7 +243,7 @@ WSSocialProvider.prototype.changeRoster = function(id, stat) {
  * @param {String} msg Message from the server (see server/router.py for schema)
  * @return nothing
  **/
-WSSocialProvider.prototype.onMessage = function(finishLogin, msg) {
+RadiatusSocialProvider.prototype.onMessage = function(finishLogin, msg) {
   try {
     msg = JSON.parse(msg.text);
 
@@ -273,7 +273,7 @@ WSSocialProvider.prototype.onMessage = function(finishLogin, msg) {
   }
 };
 
-WSSocialProvider.prototype.err = function(code) {
+RadiatusSocialProvider.prototype.err = function(code) {
   var err = {
     errcode: code,
     message: this.social.ERRCODE[code]
@@ -283,5 +283,5 @@ WSSocialProvider.prototype.err = function(code) {
 
 /** REGISTER PROVIDER **/
 if (typeof freedom !== 'undefined') {
-  freedom.social().provideAsynchronous(WSSocialProvider);
+  freedom.social().provideAsynchronous(RadiatusSocialProvider);
 }

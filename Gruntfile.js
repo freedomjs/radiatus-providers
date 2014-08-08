@@ -18,6 +18,7 @@
  *  - Used to debug unit tests
  **/
 
+process.env.NODE_ENV = 'test';  //for node-config
 var fileInfo = require('freedom');
 var freedomPrefix = require.resolve('freedom').substr(0,
   require.resolve('freedom').lastIndexOf('freedom') + 8);

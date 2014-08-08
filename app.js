@@ -1,7 +1,8 @@
 /** 
  * Radiatus Providers Server
  **/
-
+var config = require('config');
+var winston = require('winston');
 var path = require('path');
 var urlParser = require('url');
 var queryParser = require('querystring');
@@ -11,14 +12,16 @@ var morgan  = require('morgan');
 var cookieParser = require('cookie-parser');
 var session = require('express-session');
 var charlatan = require('charlatan');
+
 var WebSocketServer = require('ws').Server;
 var GlobalSocialSiteHandler = require('./src/sitehandler-social-global');
+var StorageSiteHandler = require('./src/sitehandler-storage');
+var TransportSiteHandler = require('./src/sitehandler-transport');
 
 /** APPLICATION **/
 var app = express();
 var server = http.createServer(app);
-var config = require('config');
-var wss = new WebSocketServer({server: server});
+var wss = new WebSocketServer({ server: server });
 var siteHandlers = {};
 charlatan.setLocale('en-us');
 
@@ -42,6 +45,22 @@ if (opts.debug) {
 } else {
   app.use(morgan('common'));
 }
+function setupLogger(name) {
+  var opts = {
+    console: {
+      level: config.get('log.level'),
+      colorize: true,
+      timestamp: true,
+      label: name
+    }
+  };
+  winston.loggers.add(name, opts);
+  var logger = winston.loggers.get(name);
+  logger.setLevels(config.get('log.levels'));
+  return logger;
+}
+winston.addColors(config.get('log.colors'));
+var logger = setupLogger('app.js');
 
 /** STATIC CONTENT **/
 app.use(express.static(path.join(__dirname, 'src/providers')));
@@ -67,8 +86,7 @@ app.use(passport.session());
 // - 1 for anonymous users
 // - 1 for users with valid Radiatus accounts
 wss.on('connection', function(ws) {
-  //console.log(ws.upgradeReq.headers.origin);
-  console.log(ws.upgradeReq.url);
+  logger.trace('wss.on("connection"): enter');
 
   var origin = ws.upgradeReq.headers.origin;
   var url = ws.upgradeReq.url;
@@ -85,9 +103,8 @@ wss.on('connection', function(ws) {
     username = parsedQuery.radiatusUsername;
     appid = 'Storage-' + origin + parsedUrl.pathname;
     if (!siteHandlers.hasOwnProperty(appid)) {
-      siteHandlers[appid] = new StorageSiteHandler();
+      siteHandlers[appid] = new StorageSiteHandler(setupLogger(appid));
     }
-    siteHandlers[appid].addConnection(username, ws);
   } else if (parsedQuery.hasOwnProperty('radiatusUsername') &&
       parsedQuery.hasOwnProperty('radiatusSecret') &&
       parsedQuery.radiatusSecret == config.get('server.radiatusSecret') &&
@@ -95,8 +112,9 @@ wss.on('connection', function(ws) {
       parsedQuery.freedomAPI == 'transport') {
     username = parsedQuery.radiatusUsername;
     appid = 'Transport-' + origin + parsedUrl.pathname;
-    //@todo
-    console.error("TRANSPORT SITE HANDLER: NEED TO COMPLETE");
+    if (!siteHandlers.hasOwnProperty(appid)) {
+      siteHandlers[appid] = new TransportSiteHandler(setupLogger(appid));
+    }
   } else if (parsedQuery.hasOwnProperty('radiatusUsername') &&
       parsedQuery.hasOwnProperty('radiatusSecret') &&
       parsedQuery.radiatusSecret == config.get('server.radiatusSecret') &&
@@ -105,23 +123,27 @@ wss.on('connection', function(ws) {
     username = parsedQuery.radiatusUsername;
     appid = 'SocialAuth-' + origin + parsedUrl.pathname;
     if (!siteHandlers.hasOwnProperty(appid)) {
-      siteHandlers[appid] = new GlobalSocialSiteHandler();
+      siteHandlers[appid] = new GlobalSocialSiteHandler(setupLogger(appid));
     }
-    siteHandlers[appid].addConnection(username, ws);
   } else { //Default is anonymous social
     username = charlatan.Name.name();
     appid = 'SocialAnon-' + origin + parsedUrl.pathname;
     if (!siteHandlers.hasOwnProperty(appid)) {
-      siteHandlers[appid] = new GlobalSocialSiteHandler();
+      siteHandlers[appid] = new GlobalSocialSiteHandler(setupLogger(appid));
     }
-    siteHandlers[appid].addConnection(username, ws);
   }
-  console.log(appid);
+  logger.debug('wss.on("connection"): url = ' + ws.upgradeReq.url);
+  logger.debug('wss.on("connection"): appid = ' + appid);
+  logger.debug('wss.on("connection"): username = ' + username);
+  siteHandlers[appid].addConnection(username, ws);
+  logger.trace('wss.on("connection"): exit');
 });
 
 app.get('*', function(req, res) {
+  logger.trace('app.get("*"): enter');
   res.status = 404;
   res.send('404 - Not Found');
+  logger.trace('app.get("*"): exit');
 });
 
 server.listen(opts.port, function() {

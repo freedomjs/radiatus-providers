@@ -1,9 +1,7 @@
 /**
- * Site Handler for Storage
- * - supports requests from the storage and storebuffer
- *   APIs, so must make check to see if binaries are on the line
+ * Site Handler for Transport
  **/
-function StorageSiteHandler(logger) {
+function TransportSiteHandler(logger) {
   this.logger = logger;
   this.clients = {};      //Store active clients
 }
@@ -12,7 +10,7 @@ function StorageSiteHandler(logger) {
  * Add a new WebSocket client
  * Set the appropriate listeners on the WebSocket
  **/
-StorageSiteHandler.prototype.addConnection = function(username, ws) {
+TransportSiteHandler.prototype.addConnection = function(username, ws) {
   this.logger.trace('addConnection: enter');
   this.logger.debug('addConnection: for username=' + username);
 
@@ -27,7 +25,7 @@ StorageSiteHandler.prototype.addConnection = function(username, ws) {
 /**
  * Handler for incoming message on a WebSocket connection
  **/
-StorageSiteHandler.prototype._onMessage = function(username, msg) {
+TransportSiteHandler.prototype._onMessage = function(username, msg) {
   this.logger.trace('_onMessage: enter');
   this.logger.debug('_onMessage: message from '+username);
   try {
@@ -44,12 +42,11 @@ StorageSiteHandler.prototype._onMessage = function(username, msg) {
 /**
  * Handler for 'close' event from a WebSocket
  **/
-StorageSiteHandler.prototype._onClose = function(username) {
+TransportSiteHandler.prototype._onClose = function(username) {
   this.logger.trace('_onClose: enter');
   this.logger.debug('_onClose: '+username+' closed connection');
   delete this.clients[username];
   this.logger.trace('_onClose: exit');
 };
 
-
-module.exports = StorageSiteHandler;
+module.exports = TransportSiteHandler;
