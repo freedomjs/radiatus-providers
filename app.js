@@ -17,7 +17,7 @@ var GlobalSocialSiteHandler = require('./src/sitehandler-social-global');
 /** APPLICATION **/
 var app = express();
 var server = http.createServer(app);
-var config = require('./config');
+var config = require('config');
 var wss = new WebSocketServer({server: server});
 var siteHandlers = {};
 charlatan.setLocale('en-us');
@@ -79,7 +79,7 @@ wss.on('connection', function(ws) {
   // Only expose storage/transport to a valid Radiatus runtime
   if (parsedQuery.hasOwnProperty('radiatusUsername') &&
       parsedQuery.hasOwnProperty('radiatusSecret') &&
-      parsedQuery.radiatusSecret == config.radiatusSecret &&
+      parsedQuery.radiatusSecret == config.get('server.radiatusSecret') &&
       parsedQuery.hasOwnProperty('freedomAPI') && 
       parsedQuery.freedomAPI == 'storage') {
     username = parsedQuery.radiatusUsername;
@@ -90,7 +90,7 @@ wss.on('connection', function(ws) {
     siteHandlers[appid].addConnection(username, ws);
   } else if (parsedQuery.hasOwnProperty('radiatusUsername') &&
       parsedQuery.hasOwnProperty('radiatusSecret') &&
-      parsedQuery.radiatusSecret == config.radiatusSecret &&
+      parsedQuery.radiatusSecret == config.get('server.radiatusSecret') &&
       parsedQuery.hasOwnProperty('freedomAPI') && 
       parsedQuery.freedomAPI == 'transport') {
     username = parsedQuery.radiatusUsername;
@@ -99,7 +99,7 @@ wss.on('connection', function(ws) {
     console.error("TRANSPORT SITE HANDLER: NEED TO COMPLETE");
   } else if (parsedQuery.hasOwnProperty('radiatusUsername') &&
       parsedQuery.hasOwnProperty('radiatusSecret') &&
-      parsedQuery.radiatusSecret == config.radiatusSecret &&
+      parsedQuery.radiatusSecret == config.get('server.radiatusSecret') &&
       parsedQuery.hasOwnProperty('freedomAPI') && 
       parsedQuery.freedomAPI == 'social') {
     username = parsedQuery.radiatusUsername;
