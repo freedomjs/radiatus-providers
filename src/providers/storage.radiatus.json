@@ -1,0 +1,13 @@
+{
+  "name": "Radiatus Storage",
+  "description": "Storage provider using node.js server with mongodb",
+  "app": {
+    "script": "storage.radiatus.js"
+  },
+  "provides": [
+    "storage"
+  ],
+  "permissions": [
+    "core.websocket"
+  ]
+}

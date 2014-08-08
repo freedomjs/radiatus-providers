@@ -1,0 +1,13 @@
+{
+  "name": "Radiatus Storebuffer",
+  "description": "Storebuffer provider using node.js server with mongodb",
+  "app": {
+    "script": "storage.radiatus.js"
+  },
+  "provides": [
+    "storebuffer"
+  ],
+  "permissions": [
+    "core.websocket"
+  ]
+}
