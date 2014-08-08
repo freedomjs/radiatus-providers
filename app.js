@@ -83,7 +83,7 @@ wss.on('connection', function(ws) {
       parsedQuery.hasOwnProperty('freedomAPI') && 
       parsedQuery.freedomAPI == 'storage') {
     username = parsedQuery.radiatusUsername;
-    appid = origin + parsedUrl.pathname;
+    appid = 'Storage-' + origin + parsedUrl.pathname;
     if (!siteHandlers.hasOwnProperty(appid)) {
       siteHandlers[appid] = new StorageSiteHandler();
     }
@@ -94,7 +94,7 @@ wss.on('connection', function(ws) {
       parsedQuery.hasOwnProperty('freedomAPI') && 
       parsedQuery.freedomAPI == 'transport') {
     username = parsedQuery.radiatusUsername;
-    appid = origin + parsedUrl.pathname;
+    appid = 'Transport-' + origin + parsedUrl.pathname;
     //@todo
     console.error("TRANSPORT SITE HANDLER: NEED TO COMPLETE");
   } else if (parsedQuery.hasOwnProperty('radiatusUsername') &&
@@ -103,19 +103,20 @@ wss.on('connection', function(ws) {
       parsedQuery.hasOwnProperty('freedomAPI') && 
       parsedQuery.freedomAPI == 'social') {
     username = parsedQuery.radiatusUsername;
-    appid = 'auth:' + origin + parsedUrl.pathname;
+    appid = 'SocialAuth-' + origin + parsedUrl.pathname;
     if (!siteHandlers.hasOwnProperty(appid)) {
       siteHandlers[appid] = new GlobalSocialSiteHandler();
     }
     siteHandlers[appid].addConnection(username, ws);
   } else { //Default is anonymous social
     username = charlatan.Name.name();
-    appid = 'anon:' + origin + parsedUrl.pathname;
+    appid = 'SocialAnon-' + origin + parsedUrl.pathname;
     if (!siteHandlers.hasOwnProperty(appid)) {
       siteHandlers[appid] = new GlobalSocialSiteHandler();
     }
     siteHandlers[appid].addConnection(username, ws);
   }
+  console.log(appid);
 });
 
 app.get('*', function(req, res) {
