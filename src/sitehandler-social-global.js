@@ -1,8 +1,8 @@
-function GlobalSiteHandler() {
+function GlobalSocialSiteHandler() {
   this.clients = {};
 }
 
-GlobalSiteHandler.prototype.getAllUsers = function() {
+GlobalSocialSiteHandler.prototype.getAllUsers = function() {
   var ret = [];
   for (var k in this.clients) {
     if (this.clients.hasOwnProperty(k)) {
@@ -12,7 +12,7 @@ GlobalSiteHandler.prototype.getAllUsers = function() {
   return ret;
 };
 
-GlobalSiteHandler.prototype.broadcastStatus = function(username, online) {
+GlobalSocialSiteHandler.prototype.broadcastStatus = function(username, online) {
   for (var k in this.clients) {
     if (this.clients.hasOwnProperty(k)) {
       try {
@@ -28,7 +28,7 @@ GlobalSiteHandler.prototype.broadcastStatus = function(username, online) {
   }
 };
 
-GlobalSiteHandler.prototype.addConnection = function(username, ws) {
+GlobalSocialSiteHandler.prototype.addConnection = function(username, ws) {
   console.log(username + ': opened connection');
 
   ws.on('message', function(myUsername, msg) {
@@ -65,4 +65,4 @@ GlobalSiteHandler.prototype.addConnection = function(username, ws) {
   this.clients[username] = ws;
 };
 
-module.exports = GlobalSiteHandler;
+module.exports = GlobalSocialSiteHandler;

@@ -12,7 +12,7 @@ var cookieParser = require('cookie-parser');
 var session = require('express-session');
 var charlatan = require('charlatan');
 var WebSocketServer = require('ws').Server;
-var GlobalSiteHandler = require('./src/sitehandler-global');
+var GlobalSocialSiteHandler = require('./src/sitehandler-social-global');
 
 /** APPLICATION **/
 var app = express();
@@ -63,7 +63,9 @@ app.use(passport.initialize());
 app.use(passport.session());
 **/
 
-
+// Social API: every app has 2 separate global buddylists:
+// - 1 for anonymous users
+// - 1 for users with valid Radiatus accounts
 wss.on('connection', function(ws) {
   //console.log(ws.upgradeReq.headers.origin);
   console.log(ws.upgradeReq.url);
@@ -72,26 +74,48 @@ wss.on('connection', function(ws) {
   var url = ws.upgradeReq.url;
   var parsedUrl = urlParser.parse(url);
   var parsedQuery = queryParser.parse(parsedUrl.query);
-  console.log(parsedQuery);
+  var username, appid;
 
-  var appid, username;
-  // 2 global buddylists:
-  // - 1 for anonymous users
-  // - 1 for users with valid Radiatus accounts
+  // Only expose storage/transport to a valid Radiatus runtime
   if (parsedQuery.hasOwnProperty('radiatusUsername') &&
       parsedQuery.hasOwnProperty('radiatusSecret') &&
-      parsedQuery.radiatusSecret == config.radiatusSecret) {
+      parsedQuery.radiatusSecret == config.radiatusSecret &&
+      parsedQuery.hasOwnProperty('freedomAPI') && 
+      parsedQuery.freedomAPI == 'storage') {
     username = parsedQuery.radiatusUsername;
-    appId = 'Auth:' + origin + parsedUrl.pathname;
-  } else {
+    appid = origin + parsedUrl.pathname;
+    if (!siteHandlers.hasOwnProperty(appid)) {
+      siteHandlers[appid] = new StorageSiteHandler();
+    }
+    siteHandlers[appid].addConnection(username, ws);
+  } else if (parsedQuery.hasOwnProperty('radiatusUsername') &&
+      parsedQuery.hasOwnProperty('radiatusSecret') &&
+      parsedQuery.radiatusSecret == config.radiatusSecret &&
+      parsedQuery.hasOwnProperty('freedomAPI') && 
+      parsedQuery.freedomAPI == 'transport') {
+    username = parsedQuery.radiatusUsername;
+    appid = origin + parsedUrl.pathname;
+    //@todo
+    console.error("TRANSPORT SITE HANDLER: NEED TO COMPLETE");
+  } else if (parsedQuery.hasOwnProperty('radiatusUsername') &&
+      parsedQuery.hasOwnProperty('radiatusSecret') &&
+      parsedQuery.radiatusSecret == config.radiatusSecret &&
+      parsedQuery.hasOwnProperty('freedomAPI') && 
+      parsedQuery.freedomAPI == 'social') {
+    username = parsedQuery.radiatusUsername;
+    appid = 'auth:' + origin + parsedUrl.pathname;
+    if (!siteHandlers.hasOwnProperty(appid)) {
+      siteHandlers[appid] = new GlobalSocialSiteHandler();
+    }
+    siteHandlers[appid].addConnection(username, ws);
+  } else { //Default is anonymous social
     username = charlatan.Name.name();
-    appid = 'Anon:' + origin + parsedUrl.pathname;
+    appid = 'anon:' + origin + parsedUrl.pathname;
+    if (!siteHandlers.hasOwnProperty(appid)) {
+      siteHandlers[appid] = new GlobalSocialSiteHandler();
+    }
+    siteHandlers[appid].addConnection(username, ws);
   }
-
-  if (!siteHandlers.hasOwnProperty(appid)) {
-    siteHandlers[appid] = new GlobalSiteHandler();
-  }
-  siteHandlers[appid].addConnection(username, ws);
 });
 
 app.get('*', function(req, res) {
