@@ -51,6 +51,7 @@
     "express-session": "^1.7.2",
     "charlatan": "^0.1.9",
     "config": "^1.0.2",
-    "winston": "~0.7.3"
+    "winston": "~0.7.3",
+    "mongoose": "~3.8.14"
   }
 }

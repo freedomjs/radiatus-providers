@@ -8,8 +8,14 @@
 function RadiatusStorageProvider(dispatchEvent, webSocket) {
   this.dispatchEvent = dispatchEvent;
   this.websocket = freedom["core.websocket"] || webSocket;
-  this.storage = freedom.storage();
+  if (typeof freedom.storage !== 'undefined') {
+    this.ERRCODE = freedom.storage().ERRCODE;
+  } else if (typeof freedom.storebuffer !== 'undefined') {
+    this.ERRCODE = freedom.storebuffer().ERRCODE;
+  }
   this.conn = null;
+  this.requests = {};
+  this.requestId = 0;
 
   if (typeof DEBUG !== 'undefined' && DEBUG) {
     this.WS_URL = 'ws://localhost:8082/route/?freedomAPI=storage';
@@ -23,23 +29,23 @@ function RadiatusStorageProvider(dispatchEvent, webSocket) {
 
 /** INTERFACE **/
 RadiatusStorageProvider.prototype.keys = function(continuation) {
-  //this.store.keys().then(continuation);
+  this._createRequest('keys', null, null, continuation);
 };
 
 RadiatusStorageProvider.prototype.get = function(key, continuation) {
-  //this.store.get(key).then(continuation);
+  this._createRequest('get', key, null, continuation);
 };
 
 RadiatusStorageProvider.prototype.set = function(key, value, continuation) {
-  //this.store.set(key, value).then(continuation);
+  this._createRequest('set', key, value, continuation);
 };
 
 RadiatusStorageProvider.prototype.remove = function(key, continuation) {
-  //this.store.remove(key).then(continuation);
+  this._createRequest('remove', key, null, continuation);
 };
 
 RadiatusStorageProvider.prototype.clear = function(continuation) {
-  //this.store.clear().then(continuation);
+  this._createRequest('clear', null, null, continuation);
 };
 
 /** INTERNAL **/
@@ -57,11 +63,45 @@ RadiatusStorageProvider.prototype._initialize = function() {
 
 RadiatusStorageProvider.prototype._onMessage = function(msg) {
   try {
-
+    var parsedMsg = JSON.parse(msg);
+    var id = parsedMsg.id;
+    var ret = parsedMsg.ret;
+    var err = parsedMsg.err;
+    this.requests[id].continuation(ret, this._createError(err));
+    delete this.requests[id];
   } catch (e) {
     console.error(e);
   }
 };
+
+RadiatusStorageProvider.prototype._createRequest = function(method, key, value, cont) {
+  if (this.conn === null) {
+    cont(undefined, this._createError("OFFLINE"));
+    return;
+  }
+
+  var id = this.requestId++;
+  var request = {
+    id: id,
+    method: method
+    key: key,
+    value: value
+  };
+  this.conn.send({ text: JSON.stringify(request) });
+
+  request.continuation = cont;
+  this.requests[id] = request;
+};
+
+RadiatusStorageProvider.prototype._createError = function(code) {
+  if (typeof code == 'undefined') { return undefined; }
+  var err = {
+    errcode: code,
+    message: this.ERRCODE[code]
+  };
+  return err;
+};
+
 
 /** REGISTER PROVIDER **/
 if (typeof freedom !== 'undefined' &&

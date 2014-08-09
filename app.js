@@ -12,6 +12,7 @@ var morgan  = require('morgan');
 var cookieParser = require('cookie-parser');
 var session = require('express-session');
 var charlatan = require('charlatan');
+var mongoose = require('mongoose');
 
 var WebSocketServer = require('ws').Server;
 var GlobalSocialSiteHandler = require('./src/sitehandler-social-global');
@@ -24,6 +25,14 @@ var server = http.createServer(app);
 var wss = new WebSocketServer({ server: server });
 var siteHandlers = {};
 charlatan.setLocale('en-us');
+mongoose.connect(config.get('mongoUrl'));
+mongoose.connection.on('error', function(e) {
+  logger.error('Mongoose error');
+  logger.error(e);
+});
+mongoose.connection.once('open', function() {
+  logger.info('Mongoose connection online established to ' + config.get('mongoUrl'));
+});
 
 /** OPTIONS PARSING **/
 var opts = require('nomnom')

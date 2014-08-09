@@ -79,6 +79,7 @@ RadiatusSocialProvider.prototype.login = function(loginOpts, continuation) {
   this.conn.on("onMessage", this.onMessage.bind(this, finishLogin));
   this.conn.on("onError", function (cont, error) {
     this.conn = null;
+    console.error(error);
     cont.finish(undefined, this.err('ERR_CONNECTION'));
   }.bind(this, finishLogin));
   this.conn.on("onClose", function (cont, msg) {

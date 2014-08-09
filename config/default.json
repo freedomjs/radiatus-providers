@@ -1,4 +1,5 @@
 {
+  "mongoUrl": "mongodb://localhost:27017/radiatus-providers",
   "server": {
     "radiatusSecret": "secret"
   },
