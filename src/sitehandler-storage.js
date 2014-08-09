@@ -21,7 +21,12 @@ StorageSiteHandler.prototype.addConnection = function(username, ws) {
   this.clients[username] = ws;
   ws.on('message', this._onMessage.bind(this, username));
   ws.on('close', this._onClose.bind(this, username));
-  
+  // Send back a ready signal
+  ws.send(JSON.stringify({
+    'method': 'ready',
+    'userId': username,
+  }));
+
   this.logger.trace('addConnection: exit');
 };
 
@@ -36,13 +41,14 @@ StorageSiteHandler.prototype._onMessage = function(username, msg) {
     var parsedMsg = JSON.parse(msg);
     if (parsedMsg.hasOwnProperty('method') &&
         this._handlers.hasOwnProperty(parsedMsg.method)) {
-      this._handlers[parsedMsg.method](username, parsedMsg);
+      this._handlers[parsedMsg.method].bind(this)(username, parsedMsg);
     } else {
       this.logger.warn('_onMessage: invalid request ' + msg);  
     }
   } catch (e) {
-    this.logger.error('_onMessage: Failed processing message');
-    this.logger.error(e);
+    this.logger.error('_onMessage: failed processing message');
+    this.logger.error(e.message);
+    this.logger.error(e.stack);
   }
 
   this.logger.trace('_onMessage: exit');
@@ -69,7 +75,7 @@ StorageSiteHandler.prototype._handlers = {
       this.clients[username].send(JSON.stringify(req));
     }.bind(this, username, req));
     this.logger.trace('_handlers.keys: exit');
-  }.bind(this),
+  },
 
   get: function(username, req) {
     this.logger.trace('_handlers.get: enter');
@@ -88,7 +94,7 @@ StorageSiteHandler.prototype._handlers = {
       this.clients[username].send(JSON.stringify(req));
     }.bind(this, username, req));
     this.logger.trace('_handlers.get: exit');
-  }.bind(this),
+  },
 
   set: function(username, req) {
     this.logger.trace('_handlers.set: enter');
@@ -98,19 +104,35 @@ StorageSiteHandler.prototype._handlers = {
         this.logger.error('_handlers.set: mongoose error');
         this.logger.error(err);
         req.err = 'UNKNOWN';
-      } else if (doc) {
+        this.clients[username].send(JSON.stringify(req));
+        return;
+      } 
+
+      if (doc) {
         req.ret = doc.value;
-        //@todo fill
-        this.logger.debug('_handlers.set: returning ' + doc.value);
+        doc.value = req.value;
       } else {
         req.ret = null;
-        //@todo fill
-        this.logger.debug('_handlers.remove: returning null');
+        doc = new Storage({
+          username: username,
+          key: req.key,
+          valueIsRef: false,
+          value: req.value
+        });
       }
-      this.clients[username].send(JSON.stringify(req));
+      doc.save(function(username, req, err) {
+        if (err) {
+          this.logger.error('_handlers.set: mongoose error');
+          this.logger.error(err);
+          req.err = 'UNKNOWN';
+          delete req.ret;
+        }
+        this.logger.debug('_handlers.set: returning ' + req.ret);
+        this.clients[username].send(JSON.stringify(req));
+      }.bind(this, username, req));
     }.bind(this, username, req));
     this.logger.trace('_handlers.set: exit');
-  }.bind(this),
+  },
 
   remove: function(username, req) {
     this.logger.trace('_handlers.remove: enter');
@@ -127,9 +149,9 @@ StorageSiteHandler.prototype._handlers = {
         this.logger.debug('_handlers.remove: returning null');
       }
       this.clients[username].send(JSON.stringify(req));
-    }.bind(username, req));
+    }.bind(this, username, req));
     this.logger.trace('_handlers.remove: exit');
-  }.bind(this),
+  },
 
   clear: function(username, req) {
     this.logger.trace('_handlers.clear: enter');
@@ -145,7 +167,7 @@ StorageSiteHandler.prototype._handlers = {
       this.clients[username].send(JSON.stringify(req));
     }.bind(this, username, req));
     this.logger.trace('_handlers.clear: exit');
-  }.bind(this),
+  },
 };
 
 /**

@@ -14,13 +14,14 @@ function RadiatusStorageProvider(dispatchEvent, webSocket) {
     this.ERRCODE = freedom.storebuffer().ERRCODE;
   }
   this.conn = null;
-  this.requests = {};
-  this.requestId = 0;
+  this.isInitializing = true;
+  this.liveRequests = {};
+  this.queuedRequests = [];
 
   if (typeof DEBUG !== 'undefined' && DEBUG) {
-    this.WS_URL = 'ws://localhost:8082/route/?freedomAPI=storage'
-      + '&radiatusSecret=secret'
-      + '&radiatusUsername=alice';
+    this.WS_URL = 'ws://localhost:8082/route/?freedomAPI=storage' +
+      '&radiatusSecret=secret' +
+      '&radiatusUsername=alice';
   } else {
     // TBD where this sits in production
     this.WS_URL = 'ws://localhost:8082/route/?freedomAPI=storage';
@@ -31,22 +32,27 @@ function RadiatusStorageProvider(dispatchEvent, webSocket) {
 
 /** INTERFACE **/
 RadiatusStorageProvider.prototype.keys = function(continuation) {
+  console.log('RadiatusStorageProvider.keys');
   this._createRequest('keys', null, null, continuation);
 };
 
 RadiatusStorageProvider.prototype.get = function(key, continuation) {
+  console.log('RadiatusStorageProvider.get: key='+key);
   this._createRequest('get', key, null, continuation);
 };
 
 RadiatusStorageProvider.prototype.set = function(key, value, continuation) {
+  console.log('RadiatusStorageProvider.set: key='+key+",value="+value);
   this._createRequest('set', key, value, continuation);
 };
 
 RadiatusStorageProvider.prototype.remove = function(key, continuation) {
+  console.log('RadiatusStorageProvider.remove: key='+key);
   this._createRequest('remove', key, null, continuation);
 };
 
 RadiatusStorageProvider.prototype.clear = function(continuation) {
+  console.log('RadiatusStorageProvider.clear');
   this._createRequest('clear', null, null, continuation);
 };
 
@@ -56,22 +62,39 @@ RadiatusStorageProvider.prototype._initialize = function() {
   this.conn.on("onMessage", this._onMessage.bind(this));
   this.conn.on("onError", function (error) {
     this.conn = null;
+    console.error('RadiatusStorageProvider.conn.onError event');
     console.error(error);
   }.bind(this));
   this.conn.on("onClose", function (msg) {
+    console.log('RadiatusStorageProvider.conn.onClose event');
     this.conn = null;
   }.bind(this));
 };
 
 RadiatusStorageProvider.prototype._onMessage = function(msg) {
+  console.log('RadiatusStorageProvider._onMessage: ' + msg.text);
   try {
-    console.log(msg.text);
     var parsedMsg = JSON.parse(msg.text);
+    // On a 'ready' message, let's flush those initial requests
+    if (parsedMsg.method == 'ready') {
+      this.isInitializing = false;
+      while(this.queuedRequests.length > 0) {
+        this.conn.send(this.queuedRequests.shift());
+      }
+      return;
+    }
+
     var id = parsedMsg.id;
     var ret = parsedMsg.ret;
     var err = parsedMsg.err;
-    this.requests[id].continuation(ret, this._createError(err));
-    delete this.requests[id];
+    if (err) {
+      console.error('RadiatusStorageProvider.'+parsedMsg.method+': return error - ' + err);
+      this.liveRequests[id].continuation(undefined, this._createError(err));
+    } else {
+      console.log('RadiatusStorageProvider.'+parsedMsg.method+': returns ' + ret);
+      this.liveRequests[id].continuation(ret);
+    }
+    delete this.liveRequests[id];
   } catch (e) {
     console.error(e);
   }
@@ -79,21 +102,30 @@ RadiatusStorageProvider.prototype._onMessage = function(msg) {
 
 RadiatusStorageProvider.prototype._createRequest = function(method, key, value, cont) {
   if (this.conn === null) {
+    console.error('RadiatusStorageProvider.'+method+': returning error OFFLINE');
     cont(undefined, this._createError("OFFLINE"));
     return;
   }
 
-  var id = this.requestId++;
+  var id = '' + Math.random();
   var request = {
     id: id,
     method: method,
     key: key,
     value: value
   };
-  this.conn.send({ text: JSON.stringify(request) });
+  console.log('RadiatusStorageProvider._createRequest: ' + JSON.stringify(request));
+
+  // Must wait until a server sends us something first
+  // Otherwise, these messages get lost
+  if (this.isInitializing) {
+    this.queuedRequests.push({ text: JSON.stringify(request) });
+  } else {
+    this.conn.send({ text: JSON.stringify(request) });
+  }
 
   request.continuation = cont;
-  this.requests[id] = request;
+  this.liveRequests[id] = request;
 };
 
 RadiatusStorageProvider.prototype._createError = function(code) {
