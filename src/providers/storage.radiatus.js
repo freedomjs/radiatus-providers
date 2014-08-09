@@ -18,7 +18,9 @@ function RadiatusStorageProvider(dispatchEvent, webSocket) {
   this.requestId = 0;
 
   if (typeof DEBUG !== 'undefined' && DEBUG) {
-    this.WS_URL = 'ws://localhost:8082/route/?freedomAPI=storage';
+    this.WS_URL = 'ws://localhost:8082/route/?freedomAPI=storage'
+      + '&radiatusSecret=secret'
+      + '&radiatusUsername=alice';
   } else {
     // TBD where this sits in production
     this.WS_URL = 'ws://localhost:8082/route/?freedomAPI=storage';
@@ -63,7 +65,8 @@ RadiatusStorageProvider.prototype._initialize = function() {
 
 RadiatusStorageProvider.prototype._onMessage = function(msg) {
   try {
-    var parsedMsg = JSON.parse(msg);
+    console.log(msg.text);
+    var parsedMsg = JSON.parse(msg.text);
     var id = parsedMsg.id;
     var ret = parsedMsg.ret;
     var err = parsedMsg.err;
@@ -83,7 +86,7 @@ RadiatusStorageProvider.prototype._createRequest = function(method, key, value, 
   var id = this.requestId++;
   var request = {
     id: id,
-    method: method
+    method: method,
     key: key,
     value: value
   };

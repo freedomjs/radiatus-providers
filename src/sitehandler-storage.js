@@ -32,6 +32,7 @@ StorageSiteHandler.prototype._onMessage = function(username, msg) {
   this.logger.trace('_onMessage: enter');
   this.logger.debug('_onMessage: message from '+username);
   try {
+    console.log(msg);
     var parsedMsg = JSON.parse(msg);
     if (parsedMsg.hasOwnProperty('method') &&
         this._handlers.hasOwnProperty(parsedMsg.method)) {
@@ -50,7 +51,7 @@ StorageSiteHandler.prototype._onMessage = function(username, msg) {
 StorageSiteHandler.prototype._handlers = {
   keys: function(username, req) {
     this.logger.trace('_handlers.keys: enter');
-    Storage.find({ username: username }, 'key', function(err, docs) {
+    Storage.find({ username: username }, 'key', function(username, req, err, docs) {
       if (err) {
         this.logger.error('_handlers.keys: mongoose error');
         this.logger.error(err);
@@ -65,30 +66,86 @@ StorageSiteHandler.prototype._handlers = {
         req.ret = retValue;
         this.logger.debug('_handlers.keys: returning ' + JSON.stringify(retValue));
       }
-      this.clients[username].send(JSON.stringify(req))
-    });
+      this.clients[username].send(JSON.stringify(req));
+    }.bind(this, username, req));
     this.logger.trace('_handlers.keys: exit');
-  },
+  }.bind(this),
+
   get: function(username, req) {
     this.logger.trace('_handlers.get: enter');
-    Storage.findOne({ username: username, key: req.key }, function(err, doc) {
-      
+    Storage.findOne({ username: username, key: req.key }, function(username, req, err, doc) {
+      if (err) {
+        this.logger.error('_handlers.get: mongoose error');
+        this.logger.error(err);
+        req.err = 'UNKNOWN';
+      } else if (doc) {
+        req.ret = doc.value;
+        this.logger.debug('_handlers.get: returning ' + doc.value);
+      } else {
+        req.ret = null;
+        this.logger.debug('_handlers.get: returning null');
+      }
       this.clients[username].send(JSON.stringify(req));
-    });
+    }.bind(this, username, req));
     this.logger.trace('_handlers.get: exit');
-  },
+  }.bind(this),
+
   set: function(username, req) {
     this.logger.trace('_handlers.set: enter');
+    //@todo fill
+    Storage.findOne({ username: username, key: req.key }, function(username, req, err, doc) {
+      if (err) {
+        this.logger.error('_handlers.set: mongoose error');
+        this.logger.error(err);
+        req.err = 'UNKNOWN';
+      } else if (doc) {
+        req.ret = doc.value;
+        //@todo fill
+        this.logger.debug('_handlers.set: returning ' + doc.value);
+      } else {
+        req.ret = null;
+        //@todo fill
+        this.logger.debug('_handlers.remove: returning null');
+      }
+      this.clients[username].send(JSON.stringify(req));
+    }.bind(this, username, req));
     this.logger.trace('_handlers.set: exit');
-  },
+  }.bind(this),
+
   remove: function(username, req) {
     this.logger.trace('_handlers.remove: enter');
+    Storage.findOneAndRemove({ username: username, key: req.key }, function(username, req, err, doc) {
+      if (err) {
+        this.logger.error('_handlers.remove: mongoose error');
+        this.logger.error(err);
+        req.err = 'UNKNOWN';
+      } else if (doc) {
+        req.ret = doc.value;
+        this.logger.debug('_handlers.remove: returning ' + doc.value);
+      } else {
+        req.ret = null;
+        this.logger.debug('_handlers.remove: returning null');
+      }
+      this.clients[username].send(JSON.stringify(req));
+    }.bind(username, req));
     this.logger.trace('_handlers.remove: exit');
-  },
+  }.bind(this),
+
   clear: function(username, req) {
     this.logger.trace('_handlers.clear: enter');
+    Storage.remove({ username: username }, function(username, req, err) {
+      if (err) {
+        this.logger.error('_handlers.clear: mongoose error');
+        this.logger.error(err);
+        req.err = 'UNKNOWN';
+      } else {
+        req.ret = null;
+        this.logger.debug('_handlers.clear: success, returning null');
+      }
+      this.clients[username].send(JSON.stringify(req));
+    }.bind(this, username, req));
     this.logger.trace('_handlers.clear: exit');
-  },
+  }.bind(this),
 };
 
 /**
