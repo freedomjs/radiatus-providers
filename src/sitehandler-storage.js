@@ -149,7 +149,10 @@ StorageSiteHandler.prototype.get = function(username, req) {
   }.bind(this, username, req)).then(function(username, req, doc) {
     if (doc == 'DONE') { return 'DONE'; }
     var retValue = null;
-    if (doc !== null) { retVal = toArrayBuffer(doc.value); }
+    if (doc !== null) { 
+      req.ret = doc.key;
+      retValue = toArrayBuffer(doc.value); 
+    }
     this.logger.debug('_handlers.get: returning buffer ' + doc.key);
     this.clients[username].send(retValue, { binary:true });
     req.bufferSetDone = true;
@@ -247,7 +250,10 @@ StorageSiteHandler.prototype.remove = function(username, req) {
   }.bind(this, username, req)).then(function(username, req, doc) {
     if (doc == 'DONE') { return 'DONE'; }
     var retValue = null;
-    if (doc !== null) { retVal = toArrayBuffer(doc.value); }
+    if (doc !== null) { 
+      req.ret = doc.key;
+      retValue = toArrayBuffer(doc.value); 
+    }
     this.logger.debug('_handlers.get: returning buffer ' + doc.key);
     this.clients[username].send(retValue, { binary:true });
     req.bufferSetDone = true;
