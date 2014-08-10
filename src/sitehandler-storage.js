@@ -40,8 +40,8 @@ StorageSiteHandler.prototype._onMessage = function(username, msg) {
     console.log(msg);
     var parsedMsg = JSON.parse(msg);
     if (parsedMsg.hasOwnProperty('method') &&
-        this._handlers.hasOwnProperty(parsedMsg.method)) {
-      this._handlers[parsedMsg.method].bind(this)(username, parsedMsg);
+        this[parsedMsg.method]) {
+      this[parsedMsg.method].bind(this)(username, parsedMsg);
     } else {
       this.logger.warn('_onMessage: invalid request ' + msg);  
     }
@@ -54,110 +54,112 @@ StorageSiteHandler.prototype._onMessage = function(username, msg) {
   this.logger.trace('_onMessage: exit');
 };
 
-StorageSiteHandler.prototype._handlers = {
-  keys: function(username, req) {
-    this.logger.trace('_handlers.keys: enter');
-    Storage.find({ username: username}, 'key').exec().then(function(username, req, docs) {
-      var retValue = [];
-      if (docs) {
-        for (var i=0; i<docs.length; i++) {
-          retValue.push(docs[i].key);
-        }
+StorageSiteHandler.prototype.keys = function(username, req) {
+  this.logger.trace('_handlers.keys: enter');
+  Storage.find({ username: username}, 'key').exec().then(function(username, req, docs) {
+    var retValue = [];
+    if (docs) {
+      for (var i=0; i<docs.length; i++) {
+        retValue.push(docs[i].key);
       }
-      req.ret = retValue;
-      this.logger.debug('_handlers.keys: returning ' + JSON.stringify(retValue));
-      this.clients[username].send(JSON.stringify(req));
-    }.bind(this, username, req), function(username, req, err) {
-      this.logger.error('_handlers.keys: mongoose error');
-      this.logger.error(err);
-      req.err = "UNKNOWN";
-      this.clients[username].send(JSON.stringify(req));
-    }.bind(this, username, req));
-    this.logger.trace('_handlers.keys: exit');
-  },
+    }
+    req.ret = retValue;
+    this.logger.debug('_handlers.keys: returning ' + JSON.stringify(retValue));
+    this.clients[username].send(JSON.stringify(req));
+  }.bind(this, username, req)).onReject(this._onError.bind(this, username, req));
+  this.logger.trace('_handlers.keys: exit');
+};
 
-  get: function(username, req) {
-    this.logger.trace('_handlers.get: enter');
-    Storage.findOneAndUpdate(
-      { username: username, key: req.key }, 
-      { lastAccessed: new Date() }
-    ).exec().then(function(username, req, doc) {
-      req.ret = doc.value;
-      this.logger.debug('_handlers.get: returning ' + doc.value);
-      this.clients[username].send(JSON.stringify(req));
-    }.bind(this, username, req), function(username, req, err) {
-      this.logger.error('_handlers.get: mongoose error');
-      this.logger.error(err);
-      req.err = 'UNKNOWN';
-      this.clients[username].send(JSON.stringify(req));
-    }.bind(this, username, req));
-    this.logger.trace('_handlers.get: exit');
-  },
+StorageSiteHandler.prototype.get = function(username, req) {
+  this.logger.trace('_handlers.get: enter');
+  Storage.findOneAndUpdate(
+    { username: username, key: req.key }, 
+    { lastAccessed: new Date() }
+  ).exec().then(function(username, req, doc) {
+    req.ret = doc.value;
+    this.logger.debug('_handlers.get: returning ' + doc.value);
+    this.clients[username].send(JSON.stringify(req));
+  }.bind(this, username, req)).onReject(this._onError.bind(this, username, req));
+  this.logger.trace('_handlers.get: exit');
+};
 
-  set: function(username, req) {
-    this.logger.trace('_handlers.set: enter');
-    Storage.findOneAndUpdate(
-      { username: username, key: req.key }, 
-      { 
-        username: username,
-        key: req.key,
-        valueIsHash: req.valueIsHash,
-        value: req.value,
-        lastUpdated: new Date() 
-      },
-      {
-        new: false,
-        upsert: true
-      }
-    ).exec().then(function(username, req, doc) {
-      var retValue = null;
-      if (doc) { retValue = doc.value; }
-      req.ret = retValue;
-      this.logger.debug('_handlers.set: returning ' + req.ret);
+StorageSiteHandler.prototype.set = function(username, req) {
+  this.logger.trace('_handlers.set: enter');
+  Storage.findOneAndUpdate(
+    { username: username, key: req.key }, 
+    { 
+      username: username,
+      key: req.key,
+      valueIsHash: req.valueIsHash,
+      value: req.value,
+      lastUpdated: new Date() 
+    },
+    {
+      new: false,
+      upsert: true
+    }
+  ).exec().then(function(username, req, doc) {
+    var retValue = null;
+    if (doc) { retValue = doc.value; }
+    req.ret = retValue;
+    this.logger.debug('_handlers.set: returning ' + req.ret);
+      
+    if (!req.valueIsHash) {
       this.clients[username].send(JSON.stringify(req));
-    }.bind(this, username, req), function(username, req, err) {
-      this.logger.error('_handlers.set: mongoose error');
-      this.logger.error(err);
-      req.err = 'UNKNOWN';
-      this.clients[username].send(JSON.stringify(req));
-    }.bind(this, username, req));
+      return 'DONE';
+    } else if (retValue === null) {
+      return null;
+    } else {
+      return CachedBuffer.findOne({ key: retValue }).exec();
+    }
+  }.bind(this, username, req)).then(function(username, req, doc) {
+    if (doc == 'DONE') { return 'DONE'; } 
+      
+    var retValue = null;
+    if (doc !== null) { retValue = doc.value; }
+    this.clients[username].send(retValue, { binary:true });
+    return CachedBuffer.find({ key: req.value }).exec();
+  }.bind(this, username, req)).then(function(username, req, doc) {
+    if (doc == 'DONE') { return 'DONE'; } 
+    
+    if (doc) {
+      
+    } else {
 
-    this.logger.trace('_handlers.set: exit');
-  },
+    }
+  }.bind(this, username, req)).onReject(this._onError.bind(this, username, req));
+  this.logger.trace('_handlers.set: exit');
+};
 
-  remove: function(username, req) {
-    this.logger.trace('_handlers.remove: enter');
-    Storage.findOneAndRemove(
-      { username: username, key: req.key }
-    ).exec().then(function(username, req, doc) {
-      req.ret = doc.value;
-      this.logger.debug('_handlers.remove: returning ' + doc.value);
-      this.clients[username].send(JSON.stringify(req));
-    }.bind(this, username, req), function(username, req, err) {
-      this.logger.error('_handlers.remove: mongoose error');
-      this.logger.error(err);
-      req.err = 'UNKNOWN';
-      this.clients[username].send(JSON.stringify(req));
-    }.bind(this, username, req));
-    this.logger.trace('_handlers.remove: exit');
-  },
+StorageSiteHandler.prototype.remove = function(username, req) {
+  this.logger.trace('_handlers.remove: enter');
+  Storage.findOneAndRemove(
+    { username: username, key: req.key }
+  ).exec().then(function(username, req, doc) {
+    req.ret = doc.value;
+    this.logger.debug('_handlers.remove: returning ' + doc.value);
+    this.clients[username].send(JSON.stringify(req));
+  }.bind(this, username, req)).onReject(this._onError.bind(this, username, req));
+  this.logger.trace('_handlers.remove: exit');
+};
 
-  clear: function(username, req) {
-    this.logger.trace('_handlers.clear: enter');
-    Storage.remove(
-      { username: username }
-    ).exec().then(function(username, req) {
-      req.ret = null;
-      this.logger.debug('_handlers.clear: success, returning null');
-      this.clients[username].send(JSON.stringify(req));
-    }.bind(this, username, req), function(username, req, err) {
-      this.logger.error('_handlers.clear: mongoose error');
-      this.logger.error(err);
-      req.err = 'UNKNOWN';
-      this.clients[username].send(JSON.stringify(req));
-    }.bind(this, username, req));
-    this.logger.trace('_handlers.clear: exit');
-  },
+StorageSiteHandler.prototype.clear = function(username, req) {
+  this.logger.trace('_handlers.clear: enter');
+  Storage.remove(
+    { username: username }
+  ).exec().then(function(username, req) {
+    req.ret = null;
+    this.logger.debug('_handlers.clear: success, returning null');
+    this.clients[username].send(JSON.stringify(req));
+  }.bind(this, username, req)).onReject(this._onError.bind(this, username, req));
+  this.logger.trace('_handlers.clear: exit');
+};
+
+StorageSiteHandler.prototype._onError = function(username, req, err) {
+  this.logger.error('_onError: mongoose error');
+  this.logger.error(err);
+  req.err = "UNKNOWN";
+  this.clients[username].send(JSON.stringify(req));
 };
 
 /**
