@@ -125,7 +125,12 @@ RadiatusStorageProvider.prototype._onMessage = function(msg) {
         parsedMsg.bufferSetDone === false &&
         parsedMsg.method == 'set') {
       console.log('RadiatusStorageProvider._onMessage: sending buffer '+parsedMsg.value);
-      this.conn.send({ buffer: this.cachedBuffer.retrieve(parsedMsg.value, parsedMsg.id) });
+      var buf = this.cachedBuffer.retrieve(parsedMsg.value, parsedMsg.id);
+      if (buf !== null) {
+        this.conn.send({ buffer: buf });
+      } else {
+        console.error('RadiatusStorageProvider._onMessage: missing buffer '+parsedMsg.value);
+      }
     } else if (parsedMsg.bufferSetDone === true && 
         (parsedMsg.method == 'set' || parsedMsg.method == 'get' || parsedMsg.method == 'remove')) {
       console.log('RadiatusStorageProvider.'+parsedMsg.method+': returns buffer with hash '+parsedMsg.ret);

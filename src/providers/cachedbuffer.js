@@ -48,14 +48,14 @@ CachedBuffer.prototype.retrieve = function(hash, id) {
   var retValue;
   if (!this.cache.hasOwnProperty(hash)) {
     console.error("CachedBuffer.retrieve: no content with hash "+hash);
-    return;
+    return null;
   }
   retValue = this.cache[hash].buffer;
 
   if (typeof id !== 'undefined') {
     //Remove id from ref count
     this.cache[hash].ids = this.cache[hash].ids.filter(function(id, elt) {
-        return id !== elt;
+      return id !== elt;
     }.bind(this, id));
       
     // If ref count is 0, remove from cache

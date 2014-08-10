@@ -205,7 +205,6 @@ StorageSiteHandler.prototype.set = function(username, req) {
       req.bufferSetDone = false;
       this.waitingOnBuffer[username] = req;
     }
-    this.clients[username].send(JSON.stringify(req));
     this.logger.debug('_handlers.set: searching for old buffer to return: '+req.ret);
     if (req.ret === null) {
       return null;
@@ -223,6 +222,8 @@ StorageSiteHandler.prototype.set = function(username, req) {
     if (doc !== null) { retValue = doc.value; }
     // Send back the old buffer value
     this.clients[username].send(retValue, { binary:true });
+    // This either signals that we're done, or we need the buffer
+    this.clients[username].send(JSON.stringify(req));
   }.bind(this, username, req)).onReject(this._onError.bind(this, username, req));
   this.logger.trace('_handlers.set: exit');
 };
