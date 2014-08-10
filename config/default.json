@@ -1,6 +1,9 @@
 {
-  "mongoUrl": "mongodb://localhost:27017/radiatus-providers",
-  "server": {
+  "database": {
+    "mongoURL": "mongodb://localhost:27017/radiatus-providers",
+    "transportTTL": 10000
+  },
+  "webserver": {
     "radiatusSecret": "secret"
   },
   "log": {

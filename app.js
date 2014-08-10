@@ -25,13 +25,13 @@ var server = http.createServer(app);
 var wss = new WebSocketServer({ server: server });
 var siteHandlers = {};
 charlatan.setLocale('en-us');
-mongoose.connect(config.get('mongoUrl'));
+mongoose.connect(config.get('database.mongoURL'));
 mongoose.connection.on('error', function(e) {
   logger.error('Mongoose error');
   logger.error(e);
 });
 mongoose.connection.once('open', function() {
-  logger.info('Mongoose connection online established to ' + config.get('mongoUrl'));
+  logger.info('Mongoose connection online established to ' + config.get('database.mongoURL'));
 });
 
 /** OPTIONS PARSING **/
@@ -106,7 +106,7 @@ wss.on('connection', function(ws) {
   // Only expose storage/transport to a valid Radiatus runtime
   if (parsedQuery.hasOwnProperty('radiatusUsername') &&
       parsedQuery.hasOwnProperty('radiatusSecret') &&
-      parsedQuery.radiatusSecret == config.get('server.radiatusSecret') &&
+      parsedQuery.radiatusSecret == config.get('webserver.radiatusSecret') &&
       parsedQuery.hasOwnProperty('freedomAPI') && 
       parsedQuery.freedomAPI == 'storage') {
     username = parsedQuery.radiatusUsername;
@@ -116,7 +116,7 @@ wss.on('connection', function(ws) {
     }
   } else if (parsedQuery.hasOwnProperty('radiatusUsername') &&
       parsedQuery.hasOwnProperty('radiatusSecret') &&
-      parsedQuery.radiatusSecret == config.get('server.radiatusSecret') &&
+      parsedQuery.radiatusSecret == config.get('webserver.radiatusSecret') &&
       parsedQuery.hasOwnProperty('freedomAPI') && 
       parsedQuery.freedomAPI == 'transport') {
     username = parsedQuery.radiatusUsername;
@@ -126,7 +126,7 @@ wss.on('connection', function(ws) {
     }
   } else if (parsedQuery.hasOwnProperty('radiatusUsername') &&
       parsedQuery.hasOwnProperty('radiatusSecret') &&
-      parsedQuery.radiatusSecret == config.get('server.radiatusSecret') &&
+      parsedQuery.radiatusSecret == config.get('webserver.radiatusSecret') &&
       parsedQuery.hasOwnProperty('freedomAPI') && 
       parsedQuery.freedomAPI == 'social') {
     username = parsedQuery.radiatusUsername;

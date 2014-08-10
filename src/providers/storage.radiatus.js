@@ -95,6 +95,10 @@ RadiatusStorageProvider.prototype._onMessage = function(msg) {
       console.log('RadiatusStorageProvider.'+parsedMsg.method+': returns ' + parsedMsg.ret);
       this.liveRequests[id].continuation(parsedMsg.ret);
       delete this.liveRequests[id];
+    } else if (false) {
+      // @todo fill
+
+  
     } else {
       console.error('RadiatusStorageProvider._onMessage: cannot handle ' + msg.text);
     }
