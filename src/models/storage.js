@@ -12,13 +12,17 @@ var storageSchema = mongoose.Schema({
   // Value
   value: String,
   // Time the document was last updated
-  lastUpdated: Date
+  lastUpdated: Date,
+  // Time the document was last accessed
+  lastAccessed: Date
 });
 
+/**
 storageSchema.pre('save', function(next) {
   this.lastUpdated = new Date();
   next();
 });
+**/
 
 /**
 // Password verification

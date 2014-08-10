@@ -79,7 +79,10 @@ StorageSiteHandler.prototype._handlers = {
 
   get: function(username, req) {
     this.logger.trace('_handlers.get: enter');
-    Storage.findOne({ username: username, key: req.key }, function(username, req, err, doc) {
+    Storage.findOneAndUpdate(
+        { username: username, key: req.key }, 
+        { lastAccessed: new Date() },
+        function(username, req, err, doc) {
       if (err) {
         this.logger.error('_handlers.get: mongoose error');
         this.logger.error(err);
@@ -99,7 +102,10 @@ StorageSiteHandler.prototype._handlers = {
   set: function(username, req) {
     this.logger.trace('_handlers.set: enter');
     //@todo fill
-    Storage.findOne({ username: username, key: req.key }, function(username, req, err, doc) {
+    Storage.findOneAndUpdate(
+        { username: username, key: req.key }, 
+        { lastUpdated: new Date() },
+        function(username, req, err, doc) {
       if (err) {
         this.logger.error('_handlers.set: mongoose error');
         this.logger.error(err);
@@ -136,7 +142,9 @@ StorageSiteHandler.prototype._handlers = {
 
   remove: function(username, req) {
     this.logger.trace('_handlers.remove: enter');
-    Storage.findOneAndRemove({ username: username, key: req.key }, function(username, req, err, doc) {
+    Storage.findOneAndRemove(
+        { username: username, key: req.key }, 
+        function(username, req, err, doc) {
       if (err) {
         this.logger.error('_handlers.remove: mongoose error');
         this.logger.error(err);
@@ -155,7 +163,9 @@ StorageSiteHandler.prototype._handlers = {
 
   clear: function(username, req) {
     this.logger.trace('_handlers.clear: enter');
-    Storage.remove({ username: username }, function(username, req, err) {
+    Storage.remove(
+        { username: username }, 
+        function(username, req, err) {
       if (err) {
         this.logger.error('_handlers.clear: mongoose error');
         this.logger.error(err);
