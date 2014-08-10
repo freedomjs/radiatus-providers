@@ -74,7 +74,26 @@ RadiatusStorageProvider.prototype._initialize = function() {
 };
 
 RadiatusStorageProvider.prototype._onMessage = function(msg) {
-  console.log('RadiatusStorageProvider._onMessage: ' + msg.text);
+  console.log('RadiatusStorageProvider._onMessage: ' + JSON.stringify(msg));
+  if (msg.buffer) {
+    this.cachedBuffer.add(msg.buffer);
+    return;
+  } else if (msg.binary) {
+    var fr;
+    if (typeof FileReaderSync !== 'undefined') {
+      fr = new FileReaderSync();
+      this.cachedBuffer.add(fr.readAsArrayBuffer(msg.binary));
+    } else if (typeof FileReader !== 'undefined') {
+      fr = new FileReader();
+      fr.onload = function(e) {
+        this.cachedBuffer.add(e.target.result);
+      }.bind(this);
+      fr.readAsArrayBuffer(msg.binary);
+    } else {
+      console.error('RadiatusStorageProvider._onMessage: no idea how to read Blob');
+    }
+    return;
+  }
   try {
     var parsedMsg = JSON.parse(msg.text);
     // On a 'ready' message, let's flush those initial requests
@@ -91,14 +110,22 @@ RadiatusStorageProvider.prototype._onMessage = function(msg) {
       console.error('RadiatusStorageProvider.'+parsedMsg.method+': return error - ' + parsedMsg.err);
       this.liveRequests[id].continuation(undefined, this._createError(parsedMsg.err));
       delete this.liveRequests[id];
-    } else if (typeof parsedMsg.ret !== 'undefined') {
+    } else if (typeof parsedMsg.ret !== 'undefined' &&
+        parsedMsg.valueIsHash === false) {
       console.log('RadiatusStorageProvider.'+parsedMsg.method+': returns ' + parsedMsg.ret);
       this.liveRequests[id].continuation(parsedMsg.ret);
       delete this.liveRequests[id];
-    } else if (false) {
-      // @todo fill
-
-  
+    } else if (parsedMsg.needBufferFromClient === true &&
+        parsedMsg.bufferSetDone === false) {
+      console.log('RadiatusStorageProvider._onMessage: sending buffer '+parsedMsg.value);
+      this.conn.send({ buffer: this.cachedBuffer.retrieve(parsedMsg.value, parsedMsg.id) });
+    } else if (parsedMsg.bufferSetDone === true) {
+      console.log('RadiatusStorageProvider.'+parsedMsg.method+': returns buffer with hash '+parsedMsg.ret);
+      if (parsedMsg.ret === null) {
+        this.liveRequests[id].continuation(null); 
+      } else {
+        this.liveRequests[id].continuation(this.cachedBuffer.retrieve(parsedMsg.ret)); 
+      }
     } else {
       console.error('RadiatusStorageProvider._onMessage: cannot handle ' + msg.text);
     }

@@ -1,4 +1,6 @@
 var Storage = require('./models/storage');
+var CachedBuffer = require('./models/cachedbuffer');
+var SparkMD5 = require('./providers/lib/spark-md5.min');
 /**
  * Site Handler for Storage
  * - supports requests from the storage and storebuffer
@@ -7,6 +9,10 @@ var Storage = require('./models/storage');
 function StorageSiteHandler(logger) {
   this.logger = logger;
   this.clients = {};      //Store active clients
+  // username -> req for calls to set waiting
+  // on buffer from the client
+  this.waitingOnBuffer = {};
+  
 }
 
 /**
@@ -33,9 +39,13 @@ StorageSiteHandler.prototype.addConnection = function(username, ws) {
 /**
  * Handler for incoming message on a WebSocket connection
  **/
-StorageSiteHandler.prototype._onMessage = function(username, msg) {
+StorageSiteHandler.prototype._onMessage = function(username, msg, flags) {
   this.logger.trace('_onMessage: enter');
   this.logger.debug('_onMessage: message from '+username);
+  if (flags.binary) {
+    this._handleBinary(username, msg);
+    return;
+  }
   try {
     console.log(msg);
     var parsedMsg = JSON.parse(msg);
@@ -52,6 +62,58 @@ StorageSiteHandler.prototype._onMessage = function(username, msg) {
   }
 
   this.logger.trace('_onMessage: exit');
+};
+
+function toArrayBuffer(buffer) {
+  var ab = new ArrayBuffer(buffer.length);
+  var view = new Uint8Array(ab);
+  for (var i = 0; i < buffer.length; ++i) {
+    view[i] = buffer[i];
+  }
+  return ab;
+}
+
+StorageSiteHandler.prototype._handleBinary = function(username, msg) {
+  this.logger.trace('_handleBinary: enter');
+  if (!this.waitingOnBuffer.hasOwnProperty(username)) {
+    console.error('StorageSiteHandler._handleBinary: no request found for ' + username);
+    return;
+  }
+  // Hash the buffer myself
+  console.log(msg);
+  var spark = new SparkMD5.ArrayBuffer();
+  spark.append(toArrayBuffer(msg));
+  var hash = spark.end();
+  this.logger.debug('_handleBinary: hash='+hash);
+
+  var req = this.waitingOnBuffer[username];
+  // Create a new record
+  var newRecord = new CachedBuffer({
+    key: hash,
+    value: msg,
+    created: new Date(),
+    lastAccessed: new Date()
+  });
+
+  if (req.value !== hash) {
+    this.logger.error('StorageSiteHandler._handleBinary: expecting buffer with hash '+req.value);
+    this.logger.error('StorageSiteHandler._handleBinary: got buffer with hash '+hash);
+    this._onError(username, req, new Error('received wrong buffer'));
+    return;
+  }
+
+  newRecord.save(function(username, req, err) {
+    if (err) { 
+      this._onError(username, req, err);
+      return;
+    }
+    this.logger.debug('_handleBinary: buffer saved sending final message to client');
+    req.needBufferFromClient = false;
+    req.bufferSetDone = true;
+    this.clients[username].send(JSON.stringify(req));
+    delete this.waitingOnBuffer[username];
+  }.bind(this, username, req));
+  this.logger.trace('_handleBinary: exit');
 };
 
 StorageSiteHandler.prototype.keys = function(username, req) {
@@ -102,31 +164,49 @@ StorageSiteHandler.prototype.set = function(username, req) {
     var retValue = null;
     if (doc) { retValue = doc.value; }
     req.ret = retValue;
-    this.logger.debug('_handlers.set: returning ' + req.ret);
-      
-    if (!req.valueIsHash) {
+    if (!req.valueIsHash) { // Dealing with strings. We're done
+      this.logger.debug('_handlers.set: returning ' + req.ret);
       this.clients[username].send(JSON.stringify(req));
       return 'DONE';
-    } else if (retValue === null) {
+    } else {  // Check to see if the new value already exists
+      this.logger.debug('_handlers.set: searching for buffer ' + req.value);
+      return CachedBuffer.findOneAndUpdate(
+        { key: req.value },
+        { lastAccessed: new Date() }
+      ).exec();
+    }
+  }.bind(this, username, req)).then(function(username, req, doc) {
+    if (doc == 'DONE') { return 'DONE'; } 
+    console.log(req);
+    console.log(doc);
+    if (doc) {  // We have it already!
+      this.logger.debug('_handlers.set: already have buffer');
+      req.needBufferFromClient = false;
+      req.bufferSetDone = true;
+    } else {    // Request buffer from the client
+      this.logger.debug('_handlers.set: requesting buffer from client');
+      req.needBufferFromClient = true;
+      req.bufferSetDone = false;
+      this.waitingOnBuffer[username] = req;
+    }
+    this.clients[username].send(JSON.stringify(req));
+    this.logger.debug('_handlers.set: searching for old buffer to return: '+req.ret);
+    if (req.ret === null) {
       return null;
     } else {
-      return CachedBuffer.findOne({ key: retValue }).exec();
+      var oldHash = req.ret;
+      return CachedBuffer.findOneAndUpdate(
+        { key: oldHash },
+        { lastAccessed: new Date() }
+      ).exec();
     }
   }.bind(this, username, req)).then(function(username, req, doc) {
     if (doc == 'DONE') { return 'DONE'; } 
-      
+    this.logger.debug('_handlers.set: returning old buffer');
     var retValue = null;
     if (doc !== null) { retValue = doc.value; }
+    // Send back the old buffer value
     this.clients[username].send(retValue, { binary:true });
-    return CachedBuffer.find({ key: req.value }).exec();
-  }.bind(this, username, req)).then(function(username, req, doc) {
-    if (doc == 'DONE') { return 'DONE'; } 
-    
-    if (doc) {
-      
-    } else {
-
-    }
   }.bind(this, username, req)).onReject(this._onError.bind(this, username, req));
   this.logger.trace('_handlers.set: exit');
 };
@@ -157,7 +237,7 @@ StorageSiteHandler.prototype.clear = function(username, req) {
 
 StorageSiteHandler.prototype._onError = function(username, req, err) {
   this.logger.error('_onError: mongoose error');
-  this.logger.error(err);
+  this.logger.error(err.message);
   req.err = "UNKNOWN";
   this.clients[username].send(JSON.stringify(req));
 };

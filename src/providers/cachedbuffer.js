@@ -41,10 +41,12 @@ CachedBuffer.prototype.add = function(buffer, id) {
  *  and no refs are left, the buffer is purged from memory
  **/
 CachedBuffer.prototype.retrieve = function(hash, id) {
+  var retValue;
   if (!this.cache.hasOwnProperty(hash)) {
     console.error("CachedBuffer.retrieve: no content with hash "+hash);
     return;
   }
+  retValue = this.cache[hash].buffer;
 
   if (typeof id !== 'undefined') {
     //Remove id from ref count
@@ -58,6 +60,6 @@ CachedBuffer.prototype.retrieve = function(hash, id) {
     }
   }
   console.log('CachedBuffer.retrieve: '+hash);
-  return this.cache[hash].buffer;
+  return retValue;
 };
 
