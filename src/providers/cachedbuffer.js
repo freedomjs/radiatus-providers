@@ -14,6 +14,10 @@ function CachedBuffer() {
   }
 }
 
+CachedBuffer.prototype.clear = function() {
+  this.cache = {};
+};
+
 /**
  * Adds an ArrayBuffer to the cache, returning its MD5 hash
  * If an id is passed in, it's added to a ref counter

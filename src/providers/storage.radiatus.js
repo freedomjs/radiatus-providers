@@ -144,6 +144,9 @@ RadiatusStorageProvider.prototype._onMessage = function(msg) {
 };
 
 RadiatusStorageProvider.prototype._createRequest = function(method, key, value, cont) {
+  //DEBUG just for testing
+  if (DEBUG) { this.cachedBuffer.clear(); }
+  //DEBUG
   if (this.conn === null) {
     console.error('RadiatusStorageProvider.'+method+': returning error OFFLINE');
     cont(undefined, this._createError("OFFLINE"));

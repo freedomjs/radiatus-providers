@@ -71,7 +71,7 @@ StorageSiteHandler.prototype._handleBinary = function(username, msg) {
     console.error('StorageSiteHandler._handleBinary: no request found for ' + username);
     return;
   }
-  // Hash the buffer myself
+  // Hash the buffer myself (SparkMD5 only works with ArrayBuffers)
   console.log(msg);
   var spark = new SparkMD5.ArrayBuffer();
   spark.append(toArrayBuffer(msg));
@@ -151,7 +151,7 @@ StorageSiteHandler.prototype.get = function(username, req) {
     var retValue = null;
     if (doc !== null) { 
       req.ret = doc.key;
-      retValue = toArrayBuffer(doc.value); 
+      retValue = doc.value; 
     }
     this.logger.debug('_handlers.get: returning buffer ' + doc.key);
     this.clients[username].send(retValue, { binary:true });
@@ -187,9 +187,10 @@ StorageSiteHandler.prototype.set = function(username, req) {
       return 'DONE';
     } else {  // Check to see if the new value already exists
       this.logger.debug('_handlers.set: searching for buffer ' + req.value);
+      //If from transport, get rid of expiration
       return CachedBuffer.findOneAndUpdate(
         { key: req.value },
-        { lastAccessed: new Date() }
+        { lastAccessed: new Date(), $unset: {expires: ""} }
       ).exec();
     }
   }.bind(this, username, req)).then(function(username, req, doc) {
@@ -219,7 +220,7 @@ StorageSiteHandler.prototype.set = function(username, req) {
     if (doc == 'DONE') { return 'DONE'; } 
     this.logger.debug('_handlers.set: returning old buffer');
     var retValue = null;
-    if (doc !== null) { retValue = toArrayBuffer(doc.value); }
+    if (doc !== null) { retValue = doc.value; }
     // Send back the old buffer value
     this.clients[username].send(retValue, { binary:true });
   }.bind(this, username, req)).onReject(this._onError.bind(this, username, req));
@@ -252,7 +253,7 @@ StorageSiteHandler.prototype.remove = function(username, req) {
     var retValue = null;
     if (doc !== null) { 
       req.ret = doc.key;
-      retValue = toArrayBuffer(doc.value); 
+      retValue = doc.value; 
     }
     this.logger.debug('_handlers.get: returning buffer ' + doc.key);
     this.clients[username].send(retValue, { binary:true });
