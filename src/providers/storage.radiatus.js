@@ -7,6 +7,7 @@
  **/
 function RadiatusStorageProvider(dispatchEvent, webSocket) {
   this.dispatchEvent = dispatchEvent;
+  this.cachedBuffer = new CachedBuffer();
   this.websocket = freedom["core.websocket"] || webSocket;
   if (typeof freedom.storage !== 'undefined') {
     this.ERRCODE = freedom.storage().ERRCODE;
@@ -27,7 +28,7 @@ function RadiatusStorageProvider(dispatchEvent, webSocket) {
     this.WS_URL = 'ws://localhost:8082/route/?freedomAPI=storage';
   }
   this._initialize();
-  //console.log("Radiatus Storage Provider, running in worker " + self.location.href);
+  console.log("Radiatus Storage Provider, running in worker " + self.location.href);
 }
 
 /** INTERFACE **/
@@ -58,6 +59,7 @@ RadiatusStorageProvider.prototype.clear = function(continuation) {
 
 /** INTERNAL **/
 RadiatusStorageProvider.prototype._initialize = function() {
+  console.log("RadiatusStorageProvider._initialize: enter");
   this.conn = this.websocket(this.WS_URL);
   this.conn.on("onMessage", this._onMessage.bind(this));
   this.conn.on("onError", function (error) {
@@ -85,16 +87,17 @@ RadiatusStorageProvider.prototype._onMessage = function(msg) {
     }
 
     var id = parsedMsg.id;
-    var ret = parsedMsg.ret;
-    var err = parsedMsg.err;
-    if (err) {
-      console.error('RadiatusStorageProvider.'+parsedMsg.method+': return error - ' + err);
-      this.liveRequests[id].continuation(undefined, this._createError(err));
+    if (typeof parsedMsg.err !== 'undefined') {
+      console.error('RadiatusStorageProvider.'+parsedMsg.method+': return error - ' + parsedMsg.err);
+      this.liveRequests[id].continuation(undefined, this._createError(parsedMsg.err));
+      delete this.liveRequests[id];
+    } else if (typeof parsedMsg.ret !== 'undefined') {
+      console.log('RadiatusStorageProvider.'+parsedMsg.method+': returns ' + parsedMsg.ret);
+      this.liveRequests[id].continuation(parsedMsg.ret);
+      delete this.liveRequests[id];
     } else {
-      console.log('RadiatusStorageProvider.'+parsedMsg.method+': returns ' + ret);
-      this.liveRequests[id].continuation(ret);
+      console.error('RadiatusStorageProvider._onMessage: cannot handle ' + msg.text);
     }
-    delete this.liveRequests[id];
   } catch (e) {
     console.error(e);
   }
@@ -112,8 +115,14 @@ RadiatusStorageProvider.prototype._createRequest = function(method, key, value, 
     id: id,
     method: method,
     key: key,
+    valueIsHash: false,
     value: value
   };
+  if (value !== null &&
+      typeof value !== 'string') {  //Assume it's an ArrayBuffer
+    request.valueIsHash = true;
+    request.value = this.cachedBuffer.add(value, id);
+  }
   console.log('RadiatusStorageProvider._createRequest: ' + JSON.stringify(request));
 
   // Must wait until a server sends us something first

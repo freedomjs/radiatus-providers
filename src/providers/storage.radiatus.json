@@ -2,7 +2,11 @@
   "name": "Radiatus Storage",
   "description": "Storage provider using node.js server with mongodb",
   "app": {
-    "script": "storage.radiatus.js"
+    "script": [
+      "lib/spark-md5.min.js",
+      "cachedbuffer.js",
+      "storage.radiatus.js"
+    ]
   },
   "provides": [
     "storage"

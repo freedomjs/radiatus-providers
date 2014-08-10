@@ -3,8 +3,9 @@ var mongoose = require('mongoose');
 var cachedBufferSchema = mongoose.Schema({
   key: { type: String, required: true, unique: true},
   value: Buffer,
-  timestamp: Date,
-  expires: Date
+  created: Date,
+  expires: Date,
+  lastAccessed: Date
 });
 
 // Password verification

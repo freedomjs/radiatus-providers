@@ -32,7 +32,8 @@ var addPrefix = function(file) {
 var FILES = {
   src: [
     'app.js',
-    'src/**/*.js'
+    'src/**/*.js',
+    '!src/providers/lib/**/*.js'
   ],
   demo: [
     'demo/**/*.js'

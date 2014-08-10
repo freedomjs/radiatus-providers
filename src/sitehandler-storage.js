@@ -116,7 +116,7 @@ StorageSiteHandler.prototype._handlers = {
         doc = new Storage({
           username: username,
           key: req.key,
-          valueIsRef: false,
+          valueIsHash: false,
           value: req.value
         });
       }
