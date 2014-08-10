@@ -114,15 +114,17 @@ StorageSiteHandler.prototype._handlers = {
         return;
       } 
 
+      console.log(req);
       if (doc) {
         req.ret = doc.value;
+        doc.valueIsHash = req.valueIsHash;
         doc.value = req.value;
       } else {
         req.ret = null;
         doc = new Storage({
           username: username,
           key: req.key,
-          valueIsHash: false,
+          valueIsHash: req.valueIsHash,
           value: req.value
         });
       }
