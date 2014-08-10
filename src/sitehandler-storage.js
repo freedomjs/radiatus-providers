@@ -64,14 +64,6 @@ StorageSiteHandler.prototype._onMessage = function(username, msg, flags) {
   this.logger.trace('_onMessage: exit');
 };
 
-function toArrayBuffer(buffer) {
-  var ab = new ArrayBuffer(buffer.length);
-  var view = new Uint8Array(ab);
-  for (var i = 0; i < buffer.length; ++i) {
-    view[i] = buffer[i];
-  }
-  return ab;
-}
 
 StorageSiteHandler.prototype._handleBinary = function(username, msg) {
   this.logger.trace('_handleBinary: enter');
@@ -138,9 +130,31 @@ StorageSiteHandler.prototype.get = function(username, req) {
     { username: username, key: req.key }, 
     { lastAccessed: new Date() }
   ).exec().then(function(username, req, doc) {
-    req.ret = doc.value;
-    this.logger.debug('_handlers.get: returning ' + doc.value);
+    var retValue = null;
+    if (doc) { retValue = doc.value; }
+    req.ret = retValue;
+    if (!req.valueIsHash) {
+      this.logger.debug('_handlers.get: returning ' + retValue);
+      this.clients[username].send(JSON.stringify(req));
+      return 'DONE';
+    } else if (retValue === null) {
+      return null;
+    } else {
+      this.logger.debug('_handlers.get: searching for buffer '+req.ret);
+      return CachedBuffer.findOneAndUpdate(
+        { key: retValue }, 
+        { lastAccessed: new Date() }
+      ).exec();
+    }
+  }.bind(this, username, req)).then(function(username, req, doc) {
+    if (doc == 'DONE') { return 'DONE'; }
+    var retValue = null;
+    if (doc !== null) { retVal = toArrayBuffer(doc.value); }
+    this.logger.debug('_handlers.get: returning buffer ' + doc.key);
+    this.clients[username].send(retValue, { binary:true });
+    req.bufferSetDone = true;
     this.clients[username].send(JSON.stringify(req));
+    return 'DONE';
   }.bind(this, username, req)).onReject(this._onError.bind(this, username, req));
   this.logger.trace('_handlers.get: exit');
 };
@@ -177,8 +191,6 @@ StorageSiteHandler.prototype.set = function(username, req) {
     }
   }.bind(this, username, req)).then(function(username, req, doc) {
     if (doc == 'DONE') { return 'DONE'; } 
-    console.log(req);
-    console.log(doc);
     if (doc) {  // We have it already!
       this.logger.debug('_handlers.set: already have buffer');
       req.needBufferFromClient = false;
@@ -204,7 +216,7 @@ StorageSiteHandler.prototype.set = function(username, req) {
     if (doc == 'DONE') { return 'DONE'; } 
     this.logger.debug('_handlers.set: returning old buffer');
     var retValue = null;
-    if (doc !== null) { retValue = doc.value; }
+    if (doc !== null) { retValue = toArrayBuffer(doc.value); }
     // Send back the old buffer value
     this.clients[username].send(retValue, { binary:true });
   }.bind(this, username, req)).onReject(this._onError.bind(this, username, req));
@@ -216,9 +228,31 @@ StorageSiteHandler.prototype.remove = function(username, req) {
   Storage.findOneAndRemove(
     { username: username, key: req.key }
   ).exec().then(function(username, req, doc) {
-    req.ret = doc.value;
-    this.logger.debug('_handlers.remove: returning ' + doc.value);
+     var retValue = null;
+    if (doc) { retValue = doc.value; }
+    req.ret = retValue;
+    if (!req.valueIsHash) {
+      this.logger.debug('_handlers.get: returning ' + retValue);
+      this.clients[username].send(JSON.stringify(req));
+      return 'DONE';
+    } else if (retValue === null) {
+      return null;
+    } else {
+      this.logger.debug('_handlers.get: searching for buffer '+req.ret);
+      return CachedBuffer.findOneAndUpdate(
+        { key: retValue }, 
+        { lastAccessed: new Date() }
+      ).exec();
+    }
+  }.bind(this, username, req)).then(function(username, req, doc) {
+    if (doc == 'DONE') { return 'DONE'; }
+    var retValue = null;
+    if (doc !== null) { retVal = toArrayBuffer(doc.value); }
+    this.logger.debug('_handlers.get: returning buffer ' + doc.key);
+    this.clients[username].send(retValue, { binary:true });
+    req.bufferSetDone = true;
     this.clients[username].send(JSON.stringify(req));
+    return 'DONE';
   }.bind(this, username, req)).onReject(this._onError.bind(this, username, req));
   this.logger.trace('_handlers.remove: exit');
 };
@@ -251,6 +285,23 @@ StorageSiteHandler.prototype._onClose = function(username) {
   delete this.clients[username];
   this.logger.trace('_onClose: exit');
 };
+
+function toArrayBuffer(buffer) {
+  var ab = new ArrayBuffer(buffer.length);
+  var view = new Uint8Array(ab);
+  for (var i = 0; i < buffer.length; ++i) {
+    view[i] = buffer[i];
+  }
+  return ab;
+}
+function toBuffer(ab) {
+  var buffer = new Buffer(ab.byteLength);
+  var view = new Uint8Array(ab);
+  for (var i = 0; i < buffer.length; ++i) {
+    buffer[i] = view[i];
+  }
+  return buffer;
+}
 
 
 module.exports = StorageSiteHandler;

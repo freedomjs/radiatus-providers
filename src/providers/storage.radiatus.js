@@ -11,8 +11,10 @@ function RadiatusStorageProvider(dispatchEvent, webSocket) {
   this.websocket = freedom["core.websocket"] || webSocket;
   if (typeof freedom.storage !== 'undefined') {
     this.ERRCODE = freedom.storage().ERRCODE;
+    this.valueIsHash = false;
   } else if (typeof freedom.storebuffer !== 'undefined') {
     this.ERRCODE = freedom.storebuffer().ERRCODE;
+    this.valueIsHash = true;
   }
   this.conn = null;
   this.isInitializing = true;
@@ -115,17 +117,24 @@ RadiatusStorageProvider.prototype._onMessage = function(msg) {
       console.log('RadiatusStorageProvider.'+parsedMsg.method+': returns ' + parsedMsg.ret);
       this.liveRequests[id].continuation(parsedMsg.ret);
       delete this.liveRequests[id];
+    } else if (parsedMsg.method == 'keys' || parsedMsg.method == 'clear') {
+      console.log('RadiatusStorageProvider.'+parsedMsg.method+': returns ' + parsedMsg.ret);
+      this.liveRequests[id].continuation(parsedMsg.ret);
+      delete this.liveRequests[id];
     } else if (parsedMsg.needBufferFromClient === true &&
-        parsedMsg.bufferSetDone === false) {
+        parsedMsg.bufferSetDone === false &&
+        parsedMsg.method == 'set') {
       console.log('RadiatusStorageProvider._onMessage: sending buffer '+parsedMsg.value);
       this.conn.send({ buffer: this.cachedBuffer.retrieve(parsedMsg.value, parsedMsg.id) });
-    } else if (parsedMsg.bufferSetDone === true) {
+    } else if (parsedMsg.bufferSetDone === true && 
+        (parsedMsg.method == 'set' || parsedMsg.method == 'get' || parsedMsg.method == 'remove')) {
       console.log('RadiatusStorageProvider.'+parsedMsg.method+': returns buffer with hash '+parsedMsg.ret);
       if (parsedMsg.ret === null) {
         this.liveRequests[id].continuation(null); 
       } else {
         this.liveRequests[id].continuation(this.cachedBuffer.retrieve(parsedMsg.ret)); 
       }
+      delete this.liveRequests[id];
     } else {
       console.error('RadiatusStorageProvider._onMessage: cannot handle ' + msg.text);
     }
@@ -146,7 +155,7 @@ RadiatusStorageProvider.prototype._createRequest = function(method, key, value, 
     id: id,
     method: method,
     key: key,
-    valueIsHash: false,
+    valueIsHash: this.valueIsHash,
     value: value
   };
   if (value !== null &&
