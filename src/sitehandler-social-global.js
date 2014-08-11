@@ -3,7 +3,6 @@
  * - This creates a single global buddylist for 
  *   all active WebSocket connections
  **/
-
 function GlobalSocialSiteHandler(logger) {
   this.logger = logger;
   this.clients = {};    //Store active connections

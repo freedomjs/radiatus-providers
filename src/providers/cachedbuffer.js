@@ -6,6 +6,7 @@
  * storage/transport interfaces.
  **/
 
+var D;
 function CachedBuffer() {
   this.cache = {};    // H(buffer) -> { ids: [], buffer: ArrayBuffer}
   
@@ -15,6 +16,7 @@ function CachedBuffer() {
 }
 
 CachedBuffer.prototype.clear = function() {
+  if (D) console.log('CachedBuffer.clear: enter');
   this.cache = {};
 };
 
@@ -23,9 +25,11 @@ CachedBuffer.prototype.clear = function() {
  * If an id is passed in, it's added to a ref counter
  **/
 CachedBuffer.prototype.add = function(buffer, id) {
+  if (D) console.log('CachedBuffer.add: enter, id='+id);
   var spark = new SparkMD5.ArrayBuffer();
   spark.append(buffer);
   var hash = spark.end();
+  if (D) console.log('CachedBuffer.add: hash='+hash);
   if(!this.cache.hasOwnProperty(hash)) {
     this.cache[hash] = {
       ids: [],
@@ -35,7 +39,7 @@ CachedBuffer.prototype.add = function(buffer, id) {
   if (typeof id !== 'undefined') {
     this.cache[hash].ids.push(id);
   }
-  console.log('CachedBuffer.add: '+hash);
+  if (D) console.log('CachedBuffer.add: references='+JSON.stringify(this.cache[hash].ids));
   return hash;
 };
 
@@ -45,6 +49,7 @@ CachedBuffer.prototype.add = function(buffer, id) {
  *  and no refs are left, the buffer is purged from memory
  **/
 CachedBuffer.prototype.retrieve = function(hash, id) {
+  if (D) console.log('CachedBuffer.retrieve: hash='+hash+',id='+id);
   var retValue;
   if (!this.cache.hasOwnProperty(hash)) {
     console.error("CachedBuffer.retrieve: no content with hash "+hash);
@@ -60,10 +65,11 @@ CachedBuffer.prototype.retrieve = function(hash, id) {
       
     // If ref count is 0, remove from cache
     if (this.cache[hash].ids.length <= 0) {
+      if (D) console.log('CachedBuffer.retrieve: deleting item');
       delete this.cache[hash];
     }
   }
-  console.log('CachedBuffer.retrieve: '+hash);
+  if (D) console.log('CachedBuffer.retrieve: returning '+hash);
   return retValue;
 };
 

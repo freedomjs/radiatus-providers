@@ -1,6 +1,7 @@
 var Storage = require('./models/storage');
 var CachedBuffer = require('./models/cachedbuffer');
 var SparkMD5 = require('./providers/lib/spark-md5.min');
+
 /**
  * Site Handler for Storage
  * - supports requests from the storage and storebuffer
@@ -12,7 +13,6 @@ function StorageSiteHandler(logger) {
   // username -> req for calls to set waiting
   // on buffer from the client
   this.waitingOnBuffer = {};
-  
 }
 
 /**

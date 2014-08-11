@@ -23,7 +23,6 @@ storageSchema.pre('save', function(next) {
   next();
 });
 **/
-
 /**
 // Password verification
 storageSchema.methods.comparePassword = function(candidatePassword, cb) {

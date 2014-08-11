@@ -1,3 +1,6 @@
+var CachedBuffer = require('./models/cachedbuffer');
+var SparkMD5 = require('./providers/lib/spark-md5.min');
+
 /**
  * Site Handler for Transport
  **/
@@ -18,7 +21,11 @@ TransportSiteHandler.prototype.addConnection = function(username, ws) {
   this.clients[username] = ws;
   ws.on('message', this._onMessage.bind(this, username));
   ws.on('close', this._onClose.bind(this, username));
-  
+  ws.send(JSON.stringify({
+    'cmd': 'ready',
+    'userId': username,
+  }));
+
   this.logger.trace('addConnection: exit');
 };
 

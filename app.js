@@ -35,18 +35,16 @@ mongoose.connection.once('open', function() {
 });
 
 /** OPTIONS PARSING **/
-var opts = require('nomnom')
-  .option('debug', {
-    abbr: 'd',
-    flag: true,
-    help: 'Print debugging info'
-  })
-  .option('port', {
-    abbr: 'p',
-    help: 'listening port',
-    metavar: 'PORT',
-    default: 8082
-  }).parse();
+var opts = require('nomnom').option('debug', {
+  abbr: 'd',
+  flag: true,
+  help: 'Print debugging info'
+}).option('port', {
+  abbr: 'p',
+  help: 'listening port',
+  metavar: 'PORT',
+  default: 8082
+}).parse();
 
 /** LOGGER **/
 if (opts.debug) {
@@ -74,61 +72,46 @@ var logger = setupLogger('app.js');
 /** STATIC CONTENT **/
 app.use(express.static(path.join(__dirname, 'src/providers')));
 
-/** SESSIONS/COOKIES **/
-/**
-app.use(cookieParser(config.sessionSecret));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: true}));
-app.use(methodOverride());
-app.use(session({
-  store: sessionStore,
-  secret: config.sessionSecret,
-  name: config.cookieKey,
-  resave: true,
-  saveUninitialized: true
-}));
-app.use(passport.initialize());
-app.use(passport.session());
-**/
-
-// Social API: every app has 2 separate global buddylists:
-// - 1 for anonymous users
-// - 1 for users with valid Radiatus accounts
+/** WebSocket Router **/
+// Given a HTTP request, check if allowed for an API
+function isAllowed(api, req) {
+  var parsedUrl = urlParser.parse(req.url);
+  var parsedQuery = queryParser.parse(parsedUrl.query);
+  
+  return parsedQuery.hasOwnProperty('radiatusUsername') &&
+    parsedQuery.hasOwnProperty('radiatusSecret') &&
+    parsedQuery.radiatusSecret == config.get('webserver.radiatusSecret') &&
+    parsedQuery.hasOwnProperty('freedomAPI') && 
+    parsedQuery.freedomAPI == api;
+}
 wss.on('connection', function(ws) {
   logger.trace('wss.on("connection"): enter');
-
   var origin = ws.upgradeReq.headers.origin;
   var url = ws.upgradeReq.url;
   var parsedUrl = urlParser.parse(url);
   var parsedQuery = queryParser.parse(parsedUrl.query);
   var username, appid;
 
-  // Only expose storage/transport to a valid Radiatus runtime
-  if (parsedQuery.hasOwnProperty('radiatusUsername') &&
-      parsedQuery.hasOwnProperty('radiatusSecret') &&
-      parsedQuery.radiatusSecret == config.get('webserver.radiatusSecret') &&
-      parsedQuery.hasOwnProperty('freedomAPI') && 
-      parsedQuery.freedomAPI == 'storage') {
+  // Check which sitehandler to route to
+  // Storage Site Handler
+  if (isAllowed('storage', ws.upgradeReq)) {
     username = parsedQuery.radiatusUsername;
     appid = 'Storage-' + origin + parsedUrl.pathname;
     if (!siteHandlers.hasOwnProperty(appid)) {
       siteHandlers[appid] = new StorageSiteHandler(setupLogger(appid));
     }
-  } else if (parsedQuery.hasOwnProperty('radiatusUsername') &&
-      parsedQuery.hasOwnProperty('radiatusSecret') &&
-      parsedQuery.radiatusSecret == config.get('webserver.radiatusSecret') &&
-      parsedQuery.hasOwnProperty('freedomAPI') && 
-      parsedQuery.freedomAPI == 'transport') {
+  // Transport Site Handler
+  } else if (isAllowed('transport', ws.upgradeReq)) {
     username = parsedQuery.radiatusUsername;
     appid = 'Transport-' + origin + parsedUrl.pathname;
     if (!siteHandlers.hasOwnProperty(appid)) {
       siteHandlers[appid] = new TransportSiteHandler(setupLogger(appid));
     }
-  } else if (parsedQuery.hasOwnProperty('radiatusUsername') &&
-      parsedQuery.hasOwnProperty('radiatusSecret') &&
-      parsedQuery.radiatusSecret == config.get('webserver.radiatusSecret') &&
-      parsedQuery.hasOwnProperty('freedomAPI') && 
-      parsedQuery.freedomAPI == 'social') {
+  // Social Site Handler: 
+  // every app has 2 separate global buddylists:
+  // - 1 for anonymous users
+  // - 1 for users with valid Radiatus accounts
+  } else if (isAllowed('social', ws.upgradeReq)) {
     username = parsedQuery.radiatusUsername;
     appid = 'SocialAuth-' + origin + parsedUrl.pathname;
     if (!siteHandlers.hasOwnProperty(appid)) {
@@ -156,5 +139,5 @@ app.get('*', function(req, res) {
 });
 
 server.listen(opts.port, function() {
-  console.log("Radiatus Providers Server listening on port " + opts.port);
+  logger.info("Radiatus Providers Server listening on port " + opts.port);
 });

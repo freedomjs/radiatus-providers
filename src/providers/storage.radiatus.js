@@ -144,6 +144,7 @@ RadiatusStorageProvider.prototype._onMessage = function(msg) {
       console.error('RadiatusStorageProvider._onMessage: cannot handle ' + msg.text);
     }
   } catch (e) {
+    console.error('RadiatusStorageProvider._onMessage: failed handling message');
     console.error(e);
   }
 };

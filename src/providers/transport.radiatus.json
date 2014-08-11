@@ -1,0 +1,17 @@
+{
+  "name": "Radiatus Transport",
+  "description": "Transport provider using node.js server with mongodb",
+  "app": {
+    "script": [
+      "lib/spark-md5.min.js",
+      "cachedbuffer.js",
+      "transport.radiatus.js"
+    ]
+  },
+  "provides": [
+    "transport"
+  ],
+  "permissions": [
+    "core.websocket"
+  ]
+}
