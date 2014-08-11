@@ -36,19 +36,24 @@ StorageSiteHandler.prototype.addConnection = function(username, ws) {
   this.logger.trace('addConnection: exit');
 };
 
+
+/** HANDLE INCOMING MESSAGES **/
 /**
  * Handler for incoming message on a WebSocket connection
  **/
 StorageSiteHandler.prototype._onMessage = function(username, msg, flags) {
   this.logger.trace('_onMessage: enter');
   this.logger.debug('_onMessage: message from '+username);
+  // Reroute binary messages
   if (flags.binary) {
     this._handleBinary(username, msg);
     return;
   }
+  // Process strings
   try {
     console.log(msg);
     var parsedMsg = JSON.parse(msg);
+    //Reroute method calls
     if (parsedMsg.hasOwnProperty('method') &&
         this[parsedMsg.method]) {
       this[parsedMsg.method].bind(this)(username, parsedMsg);
@@ -94,6 +99,7 @@ StorageSiteHandler.prototype._handleBinary = function(username, msg) {
     return;
   }
 
+  // Save the buffer
   newRecord.save(function(username, req, err) {
     if (err) { 
       this._onError(username, req, err);
@@ -107,6 +113,8 @@ StorageSiteHandler.prototype._handleBinary = function(username, msg) {
   }.bind(this, username, req));
   this.logger.trace('_handleBinary: exit');
 };
+
+/** METHOD HANDLERS **/
 
 StorageSiteHandler.prototype.keys = function(username, req) {
   this.logger.trace('_handlers.keys: enter');
@@ -277,6 +285,9 @@ StorageSiteHandler.prototype.clear = function(username, req) {
   this.logger.trace('_handlers.clear: exit');
 };
 
+/**
+ * Handler for when promises from mongoose calls are rejected
+ **/
 StorageSiteHandler.prototype._onError = function(username, req, err) {
   this.logger.error('_onError: mongoose error');
   this.logger.error(err.message);
@@ -294,6 +305,9 @@ StorageSiteHandler.prototype._onClose = function(username) {
   this.logger.trace('_onClose: exit');
 };
 
+/**
+ * Helper functions to convert between node.js Buffers and ArrayBuffers
+ **/
 function toArrayBuffer(buffer) {
   var ab = new ArrayBuffer(buffer.length);
   var view = new Uint8Array(ab);
