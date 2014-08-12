@@ -12,6 +12,7 @@ function StorageSiteHandler(logger) {
   this.clients = {};      //Store active clients
   // username -> req for calls to set waiting
   // on buffer from the client
+  // Assumes only 1 unprocessed buffer per user
   this.waitingOnBuffer = {};
 }
 
