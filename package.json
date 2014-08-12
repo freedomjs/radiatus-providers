@@ -1,7 +1,7 @@
 {
   "name": "radiatus-providers",
   "description": "Social/Transport/Storage Providers",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "homepage": "http://freedomjs.org",
   "bugs": {
     "url": "http://github.com/freedomjs/radiatus-providers/issues",
