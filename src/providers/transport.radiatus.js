@@ -5,7 +5,7 @@
  * Implementation of the Transport provider that communicates with
  * a radiatus-providers server
  **/
-var D = false;
+var D = true;
 
 function RadiatusTransportProvider(dispatchEvent, webSocket) {
   this.dispatchEvent = dispatchEvent;
@@ -47,7 +47,7 @@ RadiatusTransportProvider.prototype.setup = function(name, channelId, continuati
     }
   };
 
-  freedom.core().bindChannel(channelId, function(channel) {
+  freedom.core().bindChannel(channelId).then(function(channel) {
     if (D) console.log('RadiatusTransportProvider.setup: channel bound '+channelId);
     this.peerChannel = channel;
     this.peerChannel.on('message', this._onPeerMessage.bind(this));
@@ -57,7 +57,10 @@ RadiatusTransportProvider.prototype.setup = function(name, channelId, continuati
     }.bind(this);
     this.peerChannel.emit('ready');
     this.peerChannel.send('!!!');
-  }.bind(this));  
+  }.bind(this), function(err) {
+    console.error('RadiatusTransportProvider.setup: error binding channel '+channelId);
+    console.error(err);
+  });  
   
   this.conn = this.websocket(this.WS_URL);
   this.conn.on("onMessage", this._onServerMessage.bind(this, finishSetup));
