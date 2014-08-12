@@ -85,6 +85,8 @@ StorageSiteHandler.prototype._handleBinary = function(username, msg) {
   this.logger.debug('_handleBinary: hash='+hash);
 
   var req = this.waitingOnBuffer[username];
+  // Free this up for another buffer
+  delete this.waitingOnBuffer[username];
   // Create a new record
   var newRecord = new CachedBuffer({
     key: hash,
@@ -110,7 +112,6 @@ StorageSiteHandler.prototype._handleBinary = function(username, msg) {
     req.needBufferFromClient = false;
     req.bufferSetDone = true;
     this.clients[username].send(JSON.stringify(req));
-    delete this.waitingOnBuffer[username];
   }.bind(this, username, req));
   this.logger.trace('_handleBinary: exit');
 };

@@ -32,12 +32,15 @@ CachedBuffer.prototype.add = function(buffer, id) {
   if (D) console.log('CachedBuffer.add: hash='+hash);
   if(!this.cache.hasOwnProperty(hash)) {
     this.cache[hash] = {
-      ids: [],
-      buffer: buffer
+      ids: [],            // List of request id's that need this
+      otherRefCount: 0,   // Generic counter of other references
+      buffer: buffer      // Buffer value
     };
   }
   if (typeof id !== 'undefined') {
     this.cache[hash].ids.push(id);
+  } else {
+    this.cache[hash].otherRefCount += 1;
   }
   if (D) console.log('CachedBuffer.add: references='+JSON.stringify(this.cache[hash].ids));
   return hash;
@@ -62,13 +65,17 @@ CachedBuffer.prototype.retrieve = function(hash, id) {
     this.cache[hash].ids = this.cache[hash].ids.filter(function(id, elt) {
       return id !== elt;
     }.bind(this, id));
-      
-    // If ref count is 0, remove from cache
-    if (this.cache[hash].ids.length <= 0) {
-      if (D) console.log('CachedBuffer.retrieve: deleting item');
-      delete this.cache[hash];
-    }
+  } else {
+    this.cache[hash].otherRefCount -= 1;
   }
+
+  // If ref count is 0, remove from cache
+  if (this.cache[hash].ids.length <= 0 &&
+      this.cache[hash].otherRefCount <= 0) {
+    if (D) console.log('CachedBuffer.retrieve: deleting item');
+    delete this.cache[hash];
+  }
+
   if (D) console.log('CachedBuffer.retrieve: returning '+hash);
   return retValue;
 };
