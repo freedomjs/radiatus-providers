@@ -8,8 +8,9 @@ var bufferConverter = require('./lib/buffer');
  * - supports requests from the storage and storebuffer
  *   APIs, so must make check to see if binaries are on the line
  **/
-function StorageSiteHandler(logger) {
-  this.logger = logger;
+function StorageSiteHandler(appid) {
+  this.appid = appid;
+  this.logger = require('./lib/logger')(appid);
   this.clients = {};      //Store active clients
   // username -> req for calls to set waiting
   // on buffer from the client

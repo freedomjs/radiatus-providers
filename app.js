@@ -2,7 +2,6 @@
  * Radiatus Providers Server
  **/
 var config = require('config');
-var winston = require('winston');
 var path = require('path');
 var urlParser = require('url');
 var queryParser = require('querystring');
@@ -52,22 +51,7 @@ if (opts.debug) {
 } else {
   app.use(morgan('common'));
 }
-function setupLogger(name) {
-  var opts = {
-    console: {
-      level: config.get('log.level'),
-      colorize: true,
-      timestamp: true,
-      label: name
-    }
-  };
-  winston.loggers.add(name, opts);
-  var logger = winston.loggers.get(name);
-  logger.setLevels(config.get('log.levels'));
-  return logger;
-}
-winston.addColors(config.get('log.colors'));
-var logger = setupLogger('app.js');
+var logger = require('./src/lib/logger')('app.js');
 
 /** STATIC CONTENT **/
 app.use(express.static(path.join(__dirname, 'src/providers')));
@@ -98,14 +82,14 @@ wss.on('connection', function(ws) {
     username = parsedQuery.radiatusUsername;
     appid = 'Storage-' + origin + parsedUrl.pathname;
     if (!siteHandlers.hasOwnProperty(appid)) {
-      siteHandlers[appid] = new StorageSiteHandler(setupLogger(appid));
+      siteHandlers[appid] = new StorageSiteHandler(appid);
     }
   // Transport Site Handler
   } else if (isAllowed('transport', ws.upgradeReq)) {
     username = parsedQuery.radiatusUsername;
     appid = 'Transport-' + origin + parsedUrl.pathname;
     if (!siteHandlers.hasOwnProperty(appid)) {
-      siteHandlers[appid] = new TransportSiteHandler(setupLogger(appid));
+      siteHandlers[appid] = new TransportSiteHandler(appid);
     }
   // Social Site Handler: 
   // every app has 2 separate global buddylists:
@@ -115,13 +99,13 @@ wss.on('connection', function(ws) {
     username = parsedQuery.radiatusUsername;
     appid = 'SocialAuth-' + origin + parsedUrl.pathname;
     if (!siteHandlers.hasOwnProperty(appid)) {
-      siteHandlers[appid] = new GlobalSocialSiteHandler(setupLogger(appid));
+      siteHandlers[appid] = new GlobalSocialSiteHandler(appid);
     }
   } else { //Default is anonymous social
     username = charlatan.Name.name();
     appid = 'SocialAnon-' + origin + parsedUrl.pathname;
     if (!siteHandlers.hasOwnProperty(appid)) {
-      siteHandlers[appid] = new GlobalSocialSiteHandler(setupLogger(appid));
+      siteHandlers[appid] = new GlobalSocialSiteHandler(appid);
     }
   }
   logger.debug('wss.on("connection"): url = ' + ws.upgradeReq.url);

@@ -20,6 +20,22 @@ CachedBuffer.prototype.clear = function() {
   this.cache = {};
 };
 
+CachedBuffer.prototype.addBlob = function(blob, id) {
+  var fr;
+  if (typeof FileReaderSync !== 'undefined') {
+    fr = new FileReaderSync();
+    this.cachedBuffer.add(fr.readAsArrayBuffer(blob));
+  } else if (typeof FileReader !== 'undefined') {
+    fr = new FileReader();
+    fr.onload = function(e) {
+      this.add(e.target.result);
+    }.bind(this);
+    fr.readAsArrayBuffer(blob);
+  } else {
+    console.error('CachedBuffer.addBlob: no idea how to read Blob');
+  }
+};
+
 /**
  * Adds an ArrayBuffer to the cache, returning its MD5 hash
  * If an id is passed in, it's added to a ref counter

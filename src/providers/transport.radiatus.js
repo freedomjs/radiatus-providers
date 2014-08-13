@@ -129,7 +129,7 @@ RadiatusTransportProvider.prototype._createError = function(code) {
 };
 
 RadiatusTransportProvider.prototype._onPeerMessage = function(msg) {
-  if (D) console.log('RadiatusTransportProvider._onPeerMessage: ' + JSON.stringify(msg));
+  if (D) console.log('RadiatusTransportProvider._onPeerMessage: ' + msg);
   try {
     var parsedMsg = JSON.parse(msg);
     if (parsedMsg.cmd == 'ready') {
@@ -146,7 +146,7 @@ RadiatusTransportProvider.prototype._onPeerMessage = function(msg) {
         hash: parsedMsg.hash,
         senderReq: parsedMsg,
       };
-      this.conn({ text: JSON.stringify(req) });
+      this.conn.send({ text: JSON.stringify(req) });
     }
   } catch (e) {
     console.error('RadiatusTransportProvider._onPeerMessage: error handling message');
@@ -163,22 +163,11 @@ RadiatusTransportProvider.prototype._onServerMessage = function(finishSetup, msg
     return;
   } else if (msg.binary) {
     if (D) console.log('RadiatusTransportProvider._onMessage: caching Blob');
-    var fr;
-    if (typeof FileReaderSync !== 'undefined') {
-      fr = new FileReaderSync();
-      this.cachedBuffer.add(fr.readAsArrayBuffer(msg.binary));
-    } else if (typeof FileReader !== 'undefined') {
-      fr = new FileReader();
-      fr.onload = function(e) {
-        this.cachedBuffer.add(e.target.result);
-      }.bind(this);
-      fr.readAsArrayBuffer(msg.binary);
-    } else {
-      console.error('RadiatusTransportProvider._onMessage: no idea how to read Blob');
-    }
+    this.cachedBuffer.addBlob(msg.binary);
     return;
   }
 
+  // Process strings
   try {
     var parsedMsg = JSON.parse(msg.text);
     var id = parsedMsg.id;
@@ -194,11 +183,11 @@ RadiatusTransportProvider.prototype._onServerMessage = function(finishSetup, msg
       console.error('RadiatusTransportProvider.send: return error - ' + parsedMsg.err);
       this.liveRequests[id].continuation(undefined, this._createError(parsedMsg.err));
       delete this.liveRequests[id];
-    } else if (parsedMsg.cmd == 'send' && parsedMsg.setBufferDone == true) {
+    } else if (parsedMsg.cmd == 'send' && parsedMsg.bufferSetDone === true) {
       if (D) console.log('RadiatusTransportProvider._onServerMessage: buffer is cached on server');
       if (D) console.log('RadiatusTransportProvider._onServerMessage: informing peer to D/L it');
       this.peerChannel.send(JSON.stringify(this.liveRequests[id]));
-    } else if (parsedMsg.cmd == 'send' && parsedMsg.needBufferFromClient == true) {
+    } else if (parsedMsg.cmd == 'send' && parsedMsg.needBufferFromClient === true) {
       if (D) console.log('RadiatusTransportProvider._onServerMessage: sending buffer to server '+parsedMsg.hash);
       var buf = this.cachedBuffer.retrieve(parsedMsg.hash, parsedMsg.id);
       if (buf !== null) {
@@ -207,7 +196,7 @@ RadiatusTransportProvider.prototype._onServerMessage = function(finishSetup, msg
         console.error('RadiatusTransportProvider._onServerMessage: missing buffer '+parsedMsg.hash);
       }
     } else if (parsedMsg.cmd === 'receive' && parsedMsg.bufferSent === true) {
-      if (D) console.log('RadiatusTransportProvider._ServerMessage receive: returns buffer with hash '+parsedMsg.hash);
+      if (D) console.log('RadiatusTransportProvider._onServerMessage receive: returns buffer with hash '+parsedMsg.hash);
       this.peerChannel.send(JSON.stringify(parsedMsg.senderReq));
       this.dispatchEvent('onData', {
         tag: parsedMsg.tag,
