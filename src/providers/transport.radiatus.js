@@ -5,7 +5,7 @@
  * Implementation of the Transport provider that communicates with
  * a radiatus-providers server
  **/
-var D = false;
+var DEBUGLOGGING = true;
 
 function RadiatusTransportProvider(dispatchEvent, webSocket) {
   this.dispatchEvent = dispatchEvent;
@@ -29,13 +29,25 @@ function RadiatusTransportProvider(dispatchEvent, webSocket) {
     // TBD where this sits in production
     this.WS_URL = 'ws://localhost:8082/route/?freedomAPI=transport';
   }
-  if (D) console.log("Radiatus Transport Provider, running in worker " + self.location.href);
+
+  this.TRACE('constructor', 'running in worker ' + self.location.href);
 }
+
+RadiatusTransportProvider.prototype.TRACE = function(method, msg) {
+  if (DEBUGLOGGING) {
+    console.log(
+      'RadiatusTransportProvider.' + 
+      method +
+      ':' + this.name +
+      ':' + msg
+    );
+  }
+};
 
 /** INTERFACE **/
 RadiatusTransportProvider.prototype.setup = function(name, channelId, continuation) {
-  if (D) console.log("RadiatusTransportProvider.setup: enter");
-  this.initializing = true;
+  this.TRACE('setup', 'enter');
+  this.isInitializing = true;
   this.name = name;
 
   var finishSetup = {
@@ -49,11 +61,11 @@ RadiatusTransportProvider.prototype.setup = function(name, channelId, continuati
   };
 
   freedom.core().bindChannel(channelId).then(function(channel) {
-    if (D) console.log('RadiatusTransportProvider.setup: channel bound '+channelId);
+    this.TRACE('setup', 'channel bound' + channelId);
     this.peerChannel = channel;
     this.peerChannel.on('message', this._onPeerMessage.bind(this));
     this.peerChannel.send = function(msg) {
-      if (D) console.log('RadiatusTransportProvider.peerChannel.emit: ' + JSON.stringify(msg));
+      this.TRACE('peerChannel.emit', JSON.stringify(msg));
       this.peerChannel.emit('message', msg);
     }.bind(this);
     this.peerChannel.emit('ready');
@@ -72,7 +84,7 @@ RadiatusTransportProvider.prototype.setup = function(name, channelId, continuati
     continuation(undefined, this._createError('UNKNOWN'));
   }.bind(this, continuation));
   this.conn.on("onClose", function (msg) {
-    if (D) console.log('RadiatusTransportProvider.conn.onClose event');
+    this.TRACE('conn.onClose', 'event');
     this.dispatchEvent('onClose', {});
     this.conn = null;
   }.bind(this));
@@ -80,14 +92,14 @@ RadiatusTransportProvider.prototype.setup = function(name, channelId, continuati
 };
 
 RadiatusTransportProvider.prototype.send = function(tag, data, continuation) {
-  if (D) console.log("RadiatusTransportProvider.send: tag="+tag);
+  this.TRACE('send', 'tag='+tag);
   if (this.conn === null) {
     continuation(undefined, this._createError('OFFLINE'));
   } 
 
   var id = Math.random()+'';
   var hash = this.cachedBuffer.add(data, id);
-  if (D) console.log('RadiatusTransportProvider.send: hash='+hash);
+  this.TRACE('send', 'hash='+hash);
   var req = {
     id: id,
     cmd: 'send',
@@ -95,20 +107,18 @@ RadiatusTransportProvider.prototype.send = function(tag, data, continuation) {
     hash: hash
   };
 
-  if (this.initializing === true) {
+  if (this.isInitializing === true) {
     this.queuedRequests.push({ text: JSON.stringify(req) });
   } else {
     this.conn.send({ text: JSON.stringify(req) });
   }
 
-  req.tag = tag;
   req.continuation = continuation;
   this.liveRequests[id] = req;
-
 };
 
 RadiatusTransportProvider.prototype.close = function(continuation) {
-  if (D) console.log("RadiatusTransportProvider.close: enter");
+  this.TRACE('close', 'enter');
   // https://developer.mozilla.org/en-US/docs/Web/API/WebSocket#close%28%29
   this.conn.close(1000, "Close called").then(continuation);
   this.conn = null;
@@ -129,16 +139,20 @@ RadiatusTransportProvider.prototype._createError = function(code) {
 };
 
 RadiatusTransportProvider.prototype._onPeerMessage = function(msg) {
-  if (D) console.log('RadiatusTransportProvider._onPeerMessage: ' + msg);
+  this.TRACE('_onPeerMessage', msg);
   try {
     var parsedMsg = JSON.parse(msg);
     if (parsedMsg.cmd == 'ready') {
-    // If my own send request, then this is an acknowledgement from peer
+      //Ignore for now
+      this.TRACE('_onPeerMessage', 'ready');
+    // If my own send request, then treat this as an ACK
     } else if (this.liveRequests.hasOwnProperty(parsedMsg.id)) {  
+      this.TRACE('_onPeerMessage', 'got ack for id='+parsedMsg.id);
       this.liveRequests[parsedMsg.id].continuation(null);
       delete this.liveRequests[parsedMsg.id];
     // Peer is trying to send me something, get it from the server
     } else {
+      this.TRACE('_onPeerMessage', 'requesting buffer from server '+parsedMsg.hash);
       var req = {
         id: Math.random()+'',
         cmd: 'receive',
@@ -155,14 +169,14 @@ RadiatusTransportProvider.prototype._onPeerMessage = function(msg) {
 };
 
 RadiatusTransportProvider.prototype._onServerMessage = function(finishSetup, msg) {
-  if (D) console.log('RadiatusTransportProvider._onServerMessage: ' + JSON.stringify(msg));
+  this.TRACE('_onServerMessage', JSON.stringify(msg));
   // Cache binary objects
   if (msg.buffer) {
-    if (D) console.log('RadiatusTransportProvider._onMessage: caching ArrayBuffer');
+    this.TRACE('_onMessage', 'caching ArrayBuffer');
     this.cachedBuffer.add(msg.buffer);
     return;
   } else if (msg.binary) {
-    if (D) console.log('RadiatusTransportProvider._onMessage: caching Blob');
+    this.TRACE('_onServerMessage', 'caching Blob');
     this.cachedBuffer.addBlob(msg.binary);
     return;
   }
@@ -172,7 +186,7 @@ RadiatusTransportProvider.prototype._onServerMessage = function(finishSetup, msg
     var parsedMsg = JSON.parse(msg.text);
     var id = parsedMsg.id;
     if (parsedMsg.cmd == 'ready') {
-      if (D) console.log('RadiatusTransportProvider._onServerMessage: ready');
+      this.TRACE('_onServerMessage', 'ready');
       this.isInitializing = false;
       finishSetup.finish(null);
       while(this.queuedRequests.length > 0) {
@@ -184,11 +198,10 @@ RadiatusTransportProvider.prototype._onServerMessage = function(finishSetup, msg
       this.liveRequests[id].continuation(undefined, this._createError(parsedMsg.err));
       delete this.liveRequests[id];
     } else if (parsedMsg.cmd == 'send' && parsedMsg.bufferSetDone === true) {
-      if (D) console.log('RadiatusTransportProvider._onServerMessage: buffer is cached on server');
-      if (D) console.log('RadiatusTransportProvider._onServerMessage: informing peer to D/L it');
+      this.TRACE('_onServerMessage', 'buffer is cached on server, tell peer to D/L');
       this.peerChannel.send(JSON.stringify(this.liveRequests[id]));
     } else if (parsedMsg.cmd == 'send' && parsedMsg.needBufferFromClient === true) {
-      if (D) console.log('RadiatusTransportProvider._onServerMessage: sending buffer to server '+parsedMsg.hash);
+      this.TRACE('_onServerMessage', 'sending buffer to server '+parsedMsg.hash);
       var buf = this.cachedBuffer.retrieve(parsedMsg.hash, parsedMsg.id);
       if (buf !== null) {
         this.conn.send({ buffer: buf });
@@ -196,7 +209,7 @@ RadiatusTransportProvider.prototype._onServerMessage = function(finishSetup, msg
         console.error('RadiatusTransportProvider._onServerMessage: missing buffer '+parsedMsg.hash);
       }
     } else if (parsedMsg.cmd === 'receive' && parsedMsg.bufferSent === true) {
-      if (D) console.log('RadiatusTransportProvider._onServerMessage receive: returns buffer with hash '+parsedMsg.hash);
+      this.TRACE('_onServerMessage', 'receive returns buffer with hash='+parsedMsg.hash);
       this.peerChannel.send(JSON.stringify(parsedMsg.senderReq));
       this.dispatchEvent('onData', {
         tag: parsedMsg.tag,
@@ -208,7 +221,7 @@ RadiatusTransportProvider.prototype._onServerMessage = function(finishSetup, msg
 
   } catch (e) {
     console.error('RadiatusTransportProvider._onServerMessage: error handling');
-    console.log(e);
+    console.error(e);
   }
 };
 
