@@ -1,6 +1,7 @@
 var Storage = require('./models/storage');
 var CachedBuffer = require('./models/cachedbuffer');
 var SparkMD5 = require('./providers/lib/spark-md5.min');
+var bufferConverter = require('./lib/buffer');
 
 /**
  * Site Handler for Storage
@@ -52,7 +53,7 @@ StorageSiteHandler.prototype._onMessage = function(username, msg, flags) {
   }
   // Process strings
   try {
-    console.log(msg);
+    this.logger.debug(msg);
     var parsedMsg = JSON.parse(msg);
     //Reroute method calls
     if (parsedMsg.hasOwnProperty('method') &&
@@ -74,13 +75,12 @@ StorageSiteHandler.prototype._onMessage = function(username, msg, flags) {
 StorageSiteHandler.prototype._handleBinary = function(username, msg) {
   this.logger.trace('_handleBinary: enter');
   if (!this.waitingOnBuffer.hasOwnProperty(username)) {
-    console.error('StorageSiteHandler._handleBinary: no request found for ' + username);
+    this.logger.warn('_handleBinary: no request found for ' + username);
     return;
   }
   // Hash the buffer myself (SparkMD5 only works with ArrayBuffers)
-  console.log(msg);
   var spark = new SparkMD5.ArrayBuffer();
-  spark.append(toArrayBuffer(msg));
+  spark.append(bufferConverter.toArrayBuffer(msg));
   var hash = spark.end();
   this.logger.debug('_handleBinary: hash='+hash);
 
@@ -96,8 +96,8 @@ StorageSiteHandler.prototype._handleBinary = function(username, msg) {
   });
 
   if (req.value !== hash) {
-    this.logger.error('StorageSiteHandler._handleBinary: expecting buffer with hash '+req.value);
-    this.logger.error('StorageSiteHandler._handleBinary: got buffer with hash '+hash);
+    this.logger.error('_handleBinary: expecting buffer with hash '+req.value);
+    this.logger.error('_handleBinary: got buffer with hash '+hash);
     this._onError(username, req, new Error('received wrong buffer'));
     return;
   }
@@ -307,25 +307,6 @@ StorageSiteHandler.prototype._onClose = function(username) {
   this.logger.trace('_onClose: exit');
 };
 
-/**
- * Helper functions to convert between node.js Buffers and ArrayBuffers
- **/
-function toArrayBuffer(buffer) {
-  var ab = new ArrayBuffer(buffer.length);
-  var view = new Uint8Array(ab);
-  for (var i = 0; i < buffer.length; ++i) {
-    view[i] = buffer[i];
-  }
-  return ab;
-}
-function toBuffer(ab) {
-  var buffer = new Buffer(ab.byteLength);
-  var view = new Uint8Array(ab);
-  for (var i = 0; i < buffer.length; ++i) {
-    buffer[i] = view[i];
-  }
-  return buffer;
-}
 
 
 module.exports = StorageSiteHandler;
