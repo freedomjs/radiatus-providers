@@ -43,6 +43,16 @@ RadiatusTransportProvider.prototype.TRACE = function(method, msg) {
     );
   }
 };
+RadiatusTransportProvider.prototype.ERROR = function(method, msg, err) {
+  var toPrint = 'RadiatusTransportProvider.'+this.name+'.'+method+':';
+  toPrint += msg;
+  if (err && err.message) {
+    toPrint += ', '+err.message;
+  }
+  console.error(toPrint);
+  console.trace();
+  if (err) console.error(err);
+};
 
 /** INTERFACE **/
 RadiatusTransportProvider.prototype.setup = function(name, channelId, continuation) {
@@ -71,16 +81,14 @@ RadiatusTransportProvider.prototype.setup = function(name, channelId, continuati
     this.peerChannel.emit('ready');
     this.peerChannel.send(JSON.stringify({cmd: 'ready'}));
   }.bind(this), function(err) {
-    console.error('RadiatusTransportProvider.setup: error binding channel '+channelId);
-    console.error(err);
-  });  
+    this.ERROR('setup', 'error binding channel '+channelId, err);
+  }.bind(this));  
   
   this.conn = this.websocket(this.WS_URL);
   this.conn.on("onMessage", this._onServerMessage.bind(this, finishSetup));
   this.conn.on("onError", function (continuation, error) {
     this.conn = null;
-    console.error('RadiatusTransportProvider.conn.onError event');
-    console.error(error);
+    this.ERROR('conn.on', 'onError event fired', error);
     continuation(undefined, this._createError('UNKNOWN'));
   }.bind(this, continuation));
   this.conn.on("onClose", function (msg) {
@@ -163,8 +171,7 @@ RadiatusTransportProvider.prototype._onPeerMessage = function(msg) {
       this.conn.send({ text: JSON.stringify(req) });
     }
   } catch (e) {
-    console.error('RadiatusTransportProvider._onPeerMessage: error handling message');
-    console.error(e);
+    this.ERROR('_onPeerMessage', 'error handling message', e);
   }
 };
 
@@ -197,7 +204,7 @@ RadiatusTransportProvider.prototype._onServerMessage = function(finishSetup, msg
       return;
     // Returned an error
     } else if (typeof parsedMsg.err !== 'undefined') {
-      console.error('RadiatusTransportProvider.send: return error - ' + parsedMsg.err);
+      this.ERROR('send', 'returns error - '+parsedMsg.err);
       this.liveRequests[id].continuation(undefined, this._createError(parsedMsg.err));
       delete this.liveRequests[id];
     // Successfully stored buffer on server. Now inform peer
@@ -211,7 +218,7 @@ RadiatusTransportProvider.prototype._onServerMessage = function(finishSetup, msg
       if (buf !== null) {
         this.conn.send({ buffer: buf });
       } else {
-        console.error('RadiatusTransportProvider._onServerMessage: missing buffer '+parsedMsg.hash);
+        this.ERROR('_onServerMessage', 'missing buffer '+parsedMsg.hash);
       }
     // Receiving a buffer from the server
     } else if (parsedMsg.cmd === 'receive' && parsedMsg.bufferSent === true) {
@@ -222,12 +229,10 @@ RadiatusTransportProvider.prototype._onServerMessage = function(finishSetup, msg
         data: this.cachedBuffer.retrieve(parsedMsg.hash)
       });
     } else {
-      console.error('RadiatusTransportProvider._onServerMessage: unrecognized message');
+      this.ERROR('_onServerMessage', 'unrecognized message '+msg.text);
     }
-
   } catch (e) {
-    console.error('RadiatusTransportProvider._onServerMessage: error handling');
-    console.error(e);
+    this.ERROR('_onServerMessage', 'error handling '+msg.text, e);
   }
 };
 
