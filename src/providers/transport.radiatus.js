@@ -5,7 +5,7 @@
  * Implementation of the Transport provider that communicates with
  * a radiatus-providers server
  **/
-var D = true;
+var D = false;
 
 function RadiatusTransportProvider(dispatchEvent, webSocket) {
   this.dispatchEvent = dispatchEvent;
