@@ -1,5 +1,6 @@
 var CachedBuffer = require('./models/cachedbuffer');
 var ConnectionHandler = require('./connectionhandler');
+var getLogger = require('./lib/logger');
 var config = require('config');
 
 /**
@@ -7,7 +8,7 @@ var config = require('config');
  **/
 function TransportSiteHandler(appid) {
   this.appid = appid;
-  this.logger = require('./lib/logger')(appid);
+  this.logger = getLogger(appid);
   this.clients = {};      //Store active clients
 }
 

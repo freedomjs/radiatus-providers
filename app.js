@@ -17,6 +17,7 @@ var WebSocketServer = require('ws').Server;
 var GlobalSocialSiteHandler = require('./src/sitehandler-social-global');
 var StorageSiteHandler = require('./src/sitehandler-storage');
 var TransportSiteHandler = require('./src/sitehandler-transport');
+var getLogger = require('./src/lib/logger');
 
 /** APPLICATION **/
 var app = express();
@@ -51,7 +52,7 @@ if (opts.debug) {
 } else {
   app.use(morgan('common'));
 }
-var logger = require('./src/lib/logger')('app.js');
+var logger = getLogger('app.js');
 
 /** STATIC CONTENT **/
 app.use(express.static(path.join(__dirname, 'src/providers')));

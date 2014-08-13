@@ -1,5 +1,4 @@
 var SparkMD5 = require('./providers/lib/spark-md5.min');
-var bufferConverter = require('./lib/buffer');
 var CachedBuffer = require('./models/cachedbuffer');
 var config = require('config');
 
@@ -34,7 +33,7 @@ ConnectionHandler.prototype.handleBinary = function(msg, expires) {
   
   // Hash the buffer myself (SparkMD5 only works with ArrayBuffers)
   var spark = new SparkMD5.ArrayBuffer();
-  spark.append(bufferConverter.toArrayBuffer(msg));
+  spark.append(toArrayBuffer(msg));
   var hash = spark.end();
   this.logger.debug('_handleBinary: hash='+hash);
   if (!this.binaryCallbacks.hasOwnProperty(hash)) {
@@ -60,5 +59,25 @@ ConnectionHandler.prototype.handleBinary = function(msg, expires) {
   
   this.logger.trace('_handleBinary: exit');
 };
+
+/**
+ * Helper functions to convert between node.js Buffers and ArrayBuffers
+ **/
+function toArrayBuffer(buffer) {
+  var ab = new ArrayBuffer(buffer.length);
+  var view = new Uint8Array(ab);
+  for (var i = 0; i < buffer.length; ++i) {
+    view[i] = buffer[i];
+  }
+  return ab;
+}
+function toBuffer(ab) {
+  var buffer = new Buffer(ab.byteLength);
+  var view = new Uint8Array(ab);
+  for (var i = 0; i < buffer.length; ++i) {
+    buffer[i] = view[i];
+  }
+  return buffer;
+}
 
 module.exports = ConnectionHandler;

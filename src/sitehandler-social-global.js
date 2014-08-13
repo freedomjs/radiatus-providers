@@ -1,3 +1,5 @@
+var getLogger = require('./lib/logger');
+
 /**
  * Site Handler for Social
  * - This creates a single global buddylist for 
@@ -5,7 +7,7 @@
  **/
 function GlobalSocialSiteHandler(appid) {
   this.appid = appid;
-  this.logger = require('./lib/logger')(appid);
+  this.logger = getLogger(appid);
   this.clients = {};    //Store active connections
 }
 

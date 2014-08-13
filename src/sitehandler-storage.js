@@ -1,7 +1,7 @@
 var Storage = require('./models/storage');
 var CachedBuffer = require('./models/cachedbuffer');
 var SparkMD5 = require('./providers/lib/spark-md5.min');
-var bufferConverter = require('./lib/buffer');
+var getLogger = require('./lib/logger');
 
 /**
  * Site Handler for Storage
@@ -10,7 +10,7 @@ var bufferConverter = require('./lib/buffer');
  **/
 function StorageSiteHandler(appid) {
   this.appid = appid;
-  this.logger = require('./lib/logger')(appid);
+  this.logger = getLogger(appid);
   this.clients = {};      //Store active clients
   // username -> req for calls to set waiting
   // on buffer from the client
@@ -72,6 +72,15 @@ StorageSiteHandler.prototype._onMessage = function(username, msg, flags) {
   this.logger.trace('_onMessage: exit');
 };
 
+function toArrayBuffer(buffer) {
+  var ab = new ArrayBuffer(buffer.length);
+  var view = new Uint8Array(ab);
+  for (var i = 0; i < buffer.length; ++i) {
+    view[i] = buffer[i];
+  }
+  return ab;
+}
+
 
 StorageSiteHandler.prototype._handleBinary = function(username, msg) {
   this.logger.trace('_handleBinary: enter');
@@ -81,7 +90,7 @@ StorageSiteHandler.prototype._handleBinary = function(username, msg) {
   }
   // Hash the buffer myself (SparkMD5 only works with ArrayBuffers)
   var spark = new SparkMD5.ArrayBuffer();
-  spark.append(bufferConverter.toArrayBuffer(msg));
+  spark.append(toArrayBuffer(msg));
   var hash = spark.end();
   this.logger.debug('_handleBinary: hash='+hash);
 
