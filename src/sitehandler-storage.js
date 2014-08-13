@@ -1,6 +1,6 @@
 var Storage = require('./models/storage');
 var CachedBuffer = require('./models/cachedbuffer');
-var SparkMD5 = require('./providers/lib/spark-md5.min');
+var ConnectionHandler = require('./connectionhandler');
 var getLogger = require('./lib/logger');
 
 /**
@@ -12,10 +12,6 @@ function StorageSiteHandler(appid) {
   this.appid = appid;
   this.logger = getLogger(appid);
   this.clients = {};      //Store active clients
-  // username -> req for calls to set waiting
-  // on buffer from the client
-  // Assumes only 1 unprocessed buffer per user
-  this.waitingOnBuffer = {};
 }
 
 /**
@@ -23,20 +19,24 @@ function StorageSiteHandler(appid) {
  * Set the appropriate listeners on the WebSocket
  **/
 StorageSiteHandler.prototype.addConnection = function(username, ws) {
-  this.logger.trace('addConnection: enter');
-  this.logger.debug('addConnection: for username=' + username);
+  this.logger.debug(username+'.addConnection: enter');
 
   // Store new client
-  this.clients[username] = ws;
-  ws.on('message', this._onMessage.bind(this, username));
-  ws.on('close', this._onClose.bind(this, username));
+  if (!this.clients.hasOwnProperty(username)) { 
+    this.clients[username] = [];
+  }
+  var connHandler = new ConnectionHandler(this.appid, username, ws);
+  this.clients[username].push(connHandler);
+
+  ws.on('message', this._onMessage.bind(this, connHandler));
+  ws.on('close', this._onClose.bind(this, connHandler));
   // Send back a ready signal
   ws.send(JSON.stringify({
     'method': 'ready',
     'userId': username,
   }));
 
-  this.logger.trace('addConnection: exit');
+  this.logger.trace(username+'.addConnection: exit');
 };
 
 
@@ -44,93 +44,38 @@ StorageSiteHandler.prototype.addConnection = function(username, ws) {
 /**
  * Handler for incoming message on a WebSocket connection
  **/
-StorageSiteHandler.prototype._onMessage = function(username, msg, flags) {
-  this.logger.trace('_onMessage: enter');
-  this.logger.debug('_onMessage: message from '+username);
+StorageSiteHandler.prototype._onMessage = function(connHandler, msg, flags) {
+  this.logger.trace(connHandler.id()+'._onMessage: enter');
+  
   // Reroute binary messages
   if (flags.binary) {
-    this._handleBinary(username, msg);
+    connHandler.handleBinary(msg, false);
     return;
   }
+
   // Process strings
   try {
-    this.logger.debug(msg);
+    this.logger.debug(connHandler.id()+'._onMessage:'+msg);
     var parsedMsg = JSON.parse(msg);
     //Reroute method calls
     if (parsedMsg.hasOwnProperty('method') &&
         this[parsedMsg.method]) {
-      this[parsedMsg.method].bind(this)(username, parsedMsg);
+      this[parsedMsg.method].bind(this)(connHandler, parsedMsg);
     } else {
-      this.logger.warn('_onMessage: invalid request ' + msg);  
+      this.logger.warn(connHandler.id()+'._onMessage: invalid request ' + msg);  
     }
   } catch (e) {
-    this.logger.error('_onMessage: failed processing message');
-    this.logger.error(e.message);
+    this.logger.error(connHandler.id()+'_onMessage: failed processing message, error='+e.message);
     this.logger.error(e.stack);
   }
-
-  this.logger.trace('_onMessage: exit');
-};
-
-function toArrayBuffer(buffer) {
-  var ab = new ArrayBuffer(buffer.length);
-  var view = new Uint8Array(ab);
-  for (var i = 0; i < buffer.length; ++i) {
-    view[i] = buffer[i];
-  }
-  return ab;
-}
-
-
-StorageSiteHandler.prototype._handleBinary = function(username, msg) {
-  this.logger.trace('_handleBinary: enter');
-  if (!this.waitingOnBuffer.hasOwnProperty(username)) {
-    this.logger.warn('_handleBinary: no request found for ' + username);
-    return;
-  }
-  // Hash the buffer myself (SparkMD5 only works with ArrayBuffers)
-  var spark = new SparkMD5.ArrayBuffer();
-  spark.append(toArrayBuffer(msg));
-  var hash = spark.end();
-  this.logger.debug('_handleBinary: hash='+hash);
-
-  var req = this.waitingOnBuffer[username];
-  // Free this up for another buffer
-  delete this.waitingOnBuffer[username];
-  // Create a new record
-  var newRecord = new CachedBuffer({
-    key: hash,
-    value: msg,
-    created: new Date(),
-    lastAccessed: new Date()
-  });
-
-  if (req.value !== hash) {
-    this.logger.error('_handleBinary: expecting buffer with hash '+req.value);
-    this.logger.error('_handleBinary: got buffer with hash '+hash);
-    this._onError(username, req, new Error('received wrong buffer'));
-    return;
-  }
-
-  // Save the buffer
-  newRecord.save(function(username, req, err) {
-    if (err) { 
-      this._onError(username, req, err);
-      return;
-    }
-    this.logger.debug('_handleBinary: buffer saved sending final message to client');
-    req.needBufferFromClient = false;
-    req.bufferSetDone = true;
-    this.clients[username].send(JSON.stringify(req));
-  }.bind(this, username, req));
-  this.logger.trace('_handleBinary: exit');
+  this.logger.trace(connHandler.id()+'_onMessage: exit');
 };
 
 /** METHOD HANDLERS **/
 
-StorageSiteHandler.prototype.keys = function(username, req) {
-  this.logger.trace('_handlers.keys: enter');
-  Storage.find({ username: username}, 'key').exec().then(function(username, req, docs) {
+StorageSiteHandler.prototype.keys = function(connHandler, req) {
+  this.logger.trace(connHandler.id()+'._handlers.keys: enter');
+  Storage.find({ username: connHandler.username}, 'key').exec().then(function(connHandler, req, docs) {
     var retValue = [];
     if (docs) {
       for (var i=0; i<docs.length; i++) {
@@ -138,56 +83,56 @@ StorageSiteHandler.prototype.keys = function(username, req) {
       }
     }
     req.ret = retValue;
-    this.logger.debug('_handlers.keys: returning ' + JSON.stringify(retValue));
-    this.clients[username].send(JSON.stringify(req));
-  }.bind(this, username, req)).onReject(this._onError.bind(this, username, req));
-  this.logger.trace('_handlers.keys: exit');
+    this.logger.debug(connHandler.id()+'._handlers.keys: returning ' + JSON.stringify(retValue));
+    connHandler.websocket.send(JSON.stringify(req));
+  }.bind(this, connHandler, req)).onReject(this._onError.bind(this, connHandler, req));
+  this.logger.trace(connHandler.id()+'._handlers.keys: exit');
 };
 
-StorageSiteHandler.prototype.get = function(username, req) {
-  this.logger.trace('_handlers.get: enter');
+StorageSiteHandler.prototype.get = function(connHandler, req) {
+  this.logger.trace(connHandler.id()+'._handlers.get: enter');
   Storage.findOneAndUpdate(
-    { username: username, key: req.key }, 
+    { username: connHandler.username, key: req.key }, 
     { lastAccessed: new Date() }
-  ).exec().then(function(username, req, doc) {
+  ).exec().then(function(connHandler, req, doc) {
     var retValue = null;
     if (doc) { retValue = doc.value; }
     req.ret = retValue;
     if (!req.valueIsHash) {
-      this.logger.debug('_handlers.get: returning ' + retValue);
-      this.clients[username].send(JSON.stringify(req));
+      this.logger.debug(connHandler.id()+'._handlers.get: returning ' + retValue);
+      connHandler.websocket.send(JSON.stringify(req));
       return 'DONE';
     } else if (retValue === null) {
       return null;
     } else {
-      this.logger.debug('_handlers.get: searching for buffer '+req.ret);
+      this.logger.debug(connHandler.id()+'._handlers.get: searching for buffer '+req.ret);
       return CachedBuffer.findOneAndUpdate(
         { key: retValue }, 
         { lastAccessed: new Date() }
       ).exec();
     }
-  }.bind(this, username, req)).then(function(username, req, doc) {
+  }.bind(this, connHandler, req)).then(function(connHandler, req, doc) {
     if (doc == 'DONE') { return 'DONE'; }
     var retValue = null;
     if (doc !== null) { 
       req.ret = doc.key;
       retValue = doc.value; 
     }
-    this.logger.debug('_handlers.get: returning buffer ' + doc.key);
-    this.clients[username].send(retValue, { binary:true });
+    this.logger.debug(connHandler.id()+'._handlers.get: returning buffer ' + doc.key);
+    connHandler.websocket.send(retValue, { binary:true });
     req.bufferSetDone = true;
-    this.clients[username].send(JSON.stringify(req));
+    connHandler.websocket.send(JSON.stringify(req));
     return 'DONE';
-  }.bind(this, username, req)).onReject(this._onError.bind(this, username, req));
-  this.logger.trace('_handlers.get: exit');
+  }.bind(this, connHandler, req)).onReject(this._onError.bind(this, connHandler, req));
+  this.logger.trace(connHandler.id()+'._handlers.get: exit');
 };
 
-StorageSiteHandler.prototype.set = function(username, req) {
-  this.logger.trace('_handlers.set: enter');
+StorageSiteHandler.prototype.set = function(connHandler, req) {
+  this.logger.trace(connHandler.id()+'._handlers.set: enter');
   Storage.findOneAndUpdate(
-    { username: username, key: req.key }, 
+    { username: connHandler.username, key: req.key }, 
     { 
-      username: username,
+      username: connHandler.username,
       key: req.key,
       valueIsHash: req.valueIsHash,
       value: req.value,
@@ -197,35 +142,44 @@ StorageSiteHandler.prototype.set = function(username, req) {
       new: false,
       upsert: true
     }
-  ).exec().then(function(username, req, doc) {
+  ).exec().then(function(connHandler, req, doc) {
     var retValue = null;
     if (doc) { retValue = doc.value; }
     req.ret = retValue;
     if (!req.valueIsHash) { // Dealing with strings. We're done
-      this.logger.debug('_handlers.set: returning ' + req.ret);
-      this.clients[username].send(JSON.stringify(req));
+      this.logger.debug(connHandler.id()+'._handlers.set: returning ' + req.ret);
+      connHandler.websocket.send(JSON.stringify(req));
       return 'DONE';
     } else {  // Check to see if the new value already exists
-      this.logger.debug('_handlers.set: searching for buffer ' + req.value);
+      this.logger.debug(connHandler.id()+'._handlers.set: searching for buffer ' + req.value);
       //If from transport, get rid of expiration
       return CachedBuffer.findOneAndUpdate(
         { key: req.value },
         { lastAccessed: new Date(), $unset: {expires: ""} }
       ).exec();
     }
-  }.bind(this, username, req)).then(function(username, req, doc) {
+  }.bind(this, connHandler, req)).then(function(connHandler, req, doc) {
     if (doc == 'DONE') { return 'DONE'; } 
     if (doc) {  // We have it already!
-      this.logger.debug('_handlers.set: already have buffer');
+      this.logger.debug(connHandler.id()+'._handlers.set: already have buffer');
       req.needBufferFromClient = false;
       req.bufferSetDone = true;
     } else {    // Request buffer from the client
-      this.logger.debug('_handlers.set: requesting buffer from client');
+      this.logger.debug(connHandler.id()+'._handlers.set: requesting buffer from client');
       req.needBufferFromClient = true;
       req.bufferSetDone = false;
-      this.waitingOnBuffer[username] = req;
+      connHandler.binaryCallback(req.value, function(connHandler, req, err) {
+        if (err) { 
+          this._onError(connHandler, req, err);
+          return;
+        }
+        this.logger.debug(connHandler.id()+'.handleBinary: buffer saved sending final message to client');
+        req.needBufferFromClient = false;
+        req.bufferSetDone = true;
+        connHandler.websocket.send(JSON.stringify(req));
+      }.bind(this, connHandler, req));
     }
-    this.logger.debug('_handlers.set: searching for old buffer to return: '+req.ret);
+    this.logger.debug(connHandler.id()+'._handlers.set: searching for old buffer to return: '+req.ret);
     if (req.ret === null) {
       return null;
     } else {
@@ -235,88 +189,87 @@ StorageSiteHandler.prototype.set = function(username, req) {
         { lastAccessed: new Date() }
       ).exec();
     }
-  }.bind(this, username, req)).then(function(username, req, doc) {
+  }.bind(this, connHandler, req)).then(function(connHandler, req, doc) {
     if (doc == 'DONE') { return 'DONE'; } 
-    this.logger.debug('_handlers.set: returning old buffer');
+    this.logger.debug(connHandler.id()+'._handlers.set: returning old buffer');
     var retValue = null;
     if (doc !== null) { retValue = doc.value; }
     // Send back the old buffer value
-    this.clients[username].send(retValue, { binary:true });
+    connHandler.websocket.send(retValue, { binary:true });
     // This either signals that we're done, or we need the buffer
-    this.clients[username].send(JSON.stringify(req));
-  }.bind(this, username, req)).onReject(this._onError.bind(this, username, req));
-  this.logger.trace('_handlers.set: exit');
+    connHandler.websocket.send(JSON.stringify(req));
+  }.bind(this, connHandler, req)).onReject(this._onError.bind(this, connHandler, req));
+  this.logger.trace(connHandler.id()+'._handlers.set: exit');
 };
 
-StorageSiteHandler.prototype.remove = function(username, req) {
-  this.logger.trace('_handlers.remove: enter');
+StorageSiteHandler.prototype.remove = function(connHandler, req) {
+  this.logger.trace(connHandler.id()+'._handlers.remove: enter');
   Storage.findOneAndRemove(
-    { username: username, key: req.key }
-  ).exec().then(function(username, req, doc) {
+    { username: connHandler.username, key: req.key }
+  ).exec().then(function(connHandler, req, doc) {
      var retValue = null;
     if (doc) { retValue = doc.value; }
     req.ret = retValue;
     if (!req.valueIsHash) {
-      this.logger.debug('_handlers.get: returning ' + retValue);
-      this.clients[username].send(JSON.stringify(req));
+      this.logger.debug(connHandler.id()+'._handlers.get: returning ' + retValue);
+      connHandler.websocket.send(JSON.stringify(req));
       return 'DONE';
     } else if (retValue === null) {
       return null;
     } else {
-      this.logger.debug('_handlers.get: searching for buffer '+req.ret);
+      this.logger.debug(connHandler.id()+'._handlers.get: searching for buffer '+req.ret);
       return CachedBuffer.findOneAndUpdate(
         { key: retValue }, 
         { lastAccessed: new Date() }
       ).exec();
     }
-  }.bind(this, username, req)).then(function(username, req, doc) {
+  }.bind(this, connHandler, req)).then(function(connHandler, req, doc) {
     if (doc == 'DONE') { return 'DONE'; }
     var retValue = null;
     if (doc !== null) { 
       req.ret = doc.key;
       retValue = doc.value; 
     }
-    this.logger.debug('_handlers.get: returning buffer ' + doc.key);
-    this.clients[username].send(retValue, { binary:true });
+    this.logger.debug(connHandler.id()+'._handlers.get: returning buffer ' + doc.key);
+    connHandler.websocket.send(retValue, { binary:true });
     req.bufferSetDone = true;
-    this.clients[username].send(JSON.stringify(req));
+    connHandler.websocket.send(JSON.stringify(req));
     return 'DONE';
-  }.bind(this, username, req)).onReject(this._onError.bind(this, username, req));
-  this.logger.trace('_handlers.remove: exit');
+  }.bind(this, connHandler, req)).onReject(this._onError.bind(this, connHandler, req));
+  this.logger.trace(connHandler.id()+'._handlers.remove: exit');
 };
 
-StorageSiteHandler.prototype.clear = function(username, req) {
-  this.logger.trace('_handlers.clear: enter');
+StorageSiteHandler.prototype.clear = function(connHandler, req) {
+  this.logger.trace(connHandler.id()+'._handlers.clear: enter');
   Storage.remove(
-    { username: username }
-  ).exec().then(function(username, req) {
+    { username: connHandler.username }
+  ).exec().then(function(connHandler, req) {
     req.ret = null;
-    this.logger.debug('_handlers.clear: success, returning null');
-    this.clients[username].send(JSON.stringify(req));
-  }.bind(this, username, req)).onReject(this._onError.bind(this, username, req));
-  this.logger.trace('_handlers.clear: exit');
+    this.logger.debug(connHandler.id()+'._handlers.clear: success, returning null');
+    connHandler.websocket.send(JSON.stringify(req));
+  }.bind(this, connHandler, req)).onReject(this._onError.bind(this, connHandler, req));
+  this.logger.trace(connHandler.id()+'._handlers.clear: exit');
 };
 
 /**
  * Handler for when promises from mongoose calls are rejected
  **/
-StorageSiteHandler.prototype._onError = function(username, req, err) {
-  this.logger.error('_onError: mongoose error');
-  this.logger.error(err.message);
+StorageSiteHandler.prototype._onError = function(connHandler, req, err) {
+  this.logger.error(connHandler.id()+'._onError: mongoose error='+err.message);
   req.err = "UNKNOWN";
-  this.clients[username].send(JSON.stringify(req));
+  connHandler.websocket.send(JSON.stringify(req));
 };
 
 /**
  * Handler for 'close' event from a WebSocket
  **/
-StorageSiteHandler.prototype._onClose = function(username) {
-  this.logger.trace('_onClose: enter');
-  this.logger.debug('_onClose: '+username+' closed connection');
-  delete this.clients[username];
-  this.logger.trace('_onClose: exit');
+StorageSiteHandler.prototype._onClose = function(connHandler) {
+  this.logger.debug(connHandler.id()+'._onClose: closed connection');
+  this.clients[connHandler.username] = this.clients[connHandler.username].filter(function(connHandler, elt) {
+    return connHandler !== elt;
+  }.bind(this, connHandler));
+  //delete this.clients[username];
+  this.logger.trace(connHandler.id()+'._onClose: exit');
 };
-
-
 
 module.exports = StorageSiteHandler;

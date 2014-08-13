@@ -16,8 +16,7 @@ function GlobalSocialSiteHandler(appid) {
  * Set the appropriate listeners on the WebSocket
  **/
 GlobalSocialSiteHandler.prototype.addConnection = function(username, ws) {
-  this.logger.trace('addConnection: enter');
-  this.logger.debug('addConnection: for username=' + username);
+  this.logger.debug(username+'.addConnection: enter');
 
   // Store new client
   this.clients[username] = ws;
@@ -33,7 +32,7 @@ GlobalSocialSiteHandler.prototype.addConnection = function(username, ws) {
   // Inform others of the new guy
   this.broadcastStatus(username, true);
 
-  this.logger.trace('addConnection: exit');
+  this.logger.trace(username+'.addConnection: exit');
 };
 
 /**
@@ -80,8 +79,7 @@ GlobalSocialSiteHandler.prototype.broadcastStatus = function(username, online) {
  * Handler for incoming message on a WebSocket connection
  **/
 GlobalSocialSiteHandler.prototype._onMessage = function(username, msg) {
-  this.logger.trace('_onMessage: enter');
-  this.logger.debug('_onMessage: message from '+username);
+  this.logger.debug(username+'._onMessage: enter');
   try {
     var parsedMsg = JSON.parse(msg);
     if (this.clients.hasOwnProperty(parsedMsg.to)) {
@@ -90,24 +88,23 @@ GlobalSocialSiteHandler.prototype._onMessage = function(username, msg) {
         'from': username,
         'msg': parsedMsg.msg
       }));
-      this.logger.debug('_onMessage: message forwarded to ' + parsedMsg.to);
+      this.logger.debug(username+'._onMessage: message forwarded to ' + parsedMsg.to);
     } else {
-      this.logger.error('_onMessage: message not sent, no connection to ' + parsedMsg.to);
+      this.logger.error(username+'._onMessage: message not sent, no connection to ' + parsedMsg.to);
     }
   } catch (e) {
-    this.logger.error('_onMessage: Failed forwarding message');
-    this.logger.error(e);
+    this.logger.error(username+'._onMessage: Failed forwarding message, '+e.message);
+    //this.logger.error(e);
   }
 
-  this.logger.trace('_onMessage: exit');
+  this.logger.trace(username+'._onMessage: exit');
 };
 
 /**
  * Handler for 'close' event from a WebSocket
  **/
 GlobalSocialSiteHandler.prototype._onClose = function(username) {
-  this.logger.trace('_onClose: enter');
-  this.logger.debug('_onClose: '+username+' closed connection');
+  this.logger.debug(username+'._onClose: enter');
   delete this.clients[username];
   this.broadcastStatus(username, false);
   this.logger.trace('_onClose: exit');

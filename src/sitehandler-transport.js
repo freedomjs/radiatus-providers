@@ -50,7 +50,7 @@ TransportSiteHandler.prototype._onMessage = function(connHandler, msg, flags) {
   
   // Process commands
   try {
-    this.logger.debug(connHandler.id()+'.onMessage:'+msg);
+    this.logger.debug(connHandler.id()+'._onMessage:'+msg);
     var req = JSON.parse(msg);
     if (req.cmd == 'send') {
       this._handleSend(connHandler, req);
@@ -60,8 +60,8 @@ TransportSiteHandler.prototype._onMessage = function(connHandler, msg, flags) {
       this.logger.warn(connHandler.id()+'._onMessage: cannot process message');
     }
   } catch (e) {
-    this.logger.error(connHandler.id()+'._onMessage: Failed processing message');
-    this.logger.error(e.message);
+    this.logger.error(connHandler.id()+'._onMessage: Failed processing message, '+e.message);
+    //this.logger.error(e.message);
   }
 
   this.logger.trace(connHandler.id()+'._onMessage: exit');
