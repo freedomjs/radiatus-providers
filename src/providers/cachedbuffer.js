@@ -15,21 +15,31 @@ function CachedBuffer() {
   }
 }
 
+/**
+ * Clears the cache. Mostly used in testing
+ **/
 CachedBuffer.prototype.clear = function() {
   if (D) console.log('CachedBuffer.clear: enter');
   this.cache = {};
 };
 
+/**
+ * Wraps the 'add' method, first converting the Blob
+ * to an ArrayBuffer
+ * NOTE: Does not return anything due to the async nature
+ *  of FileReader
+ **/ 
 CachedBuffer.prototype.addBlob = function(blob, id) {
   var fr;
+  if (D) console.log('CachedBuffer.addBlob: converting Blob to ArrayBuffer');
   if (typeof FileReaderSync !== 'undefined') {
     fr = new FileReaderSync();
-    this.cachedBuffer.add(fr.readAsArrayBuffer(blob));
+    this.cachedBuffer.add(fr.readAsArrayBuffer(blob), id);
   } else if (typeof FileReader !== 'undefined') {
     fr = new FileReader();
-    fr.onload = function(e) {
-      this.add(e.target.result);
-    }.bind(this);
+    fr.onload = function(id, e) {
+      this.add(e.target.result, id);
+    }.bind(this, id);
     fr.readAsArrayBuffer(blob);
   } else {
     console.error('CachedBuffer.addBlob: no idea how to read Blob');

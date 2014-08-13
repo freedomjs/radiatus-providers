@@ -35,7 +35,6 @@ ConnectionHandler.prototype.handleBinary = function(msg, expires) {
   var spark = new SparkMD5.ArrayBuffer();
   spark.append(toArrayBuffer(msg));
   var hash = spark.end();
-  this.logger.debug('_handleBinary: hash='+hash);
   if (!this.binaryCallbacks.hasOwnProperty(hash)) {
     this.logger.warn('_handleBinary: no callbacks registered for ' + hash);
     return;
@@ -43,6 +42,7 @@ ConnectionHandler.prototype.handleBinary = function(msg, expires) {
   var callback = this.binaryCallbacks[hash];
   delete this.binaryCallbacks[hash];
 
+  this.logger.debug('_handleBinary: saving binary with hash='+hash);
   // Create a new record
   var newRecord = new CachedBuffer({
     key: hash,
@@ -53,7 +53,6 @@ ConnectionHandler.prototype.handleBinary = function(msg, expires) {
   if (expires) {
     newRecord.expires = new Date((new Date().getTime()) + config.get('database.transportTTL'));
   }
-
   // Save the buffer
   newRecord.save(callback);
   
