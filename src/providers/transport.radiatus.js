@@ -5,7 +5,7 @@
  * Implementation of the Transport provider that communicates with
  * a radiatus-providers server
  **/
-var DEBUGLOGGING = true;
+var DEBUGLOGGING = false;
 
 function RadiatusTransportProvider(dispatchEvent, webSocket) {
   this.dispatchEvent = dispatchEvent;
@@ -37,8 +37,8 @@ RadiatusTransportProvider.prototype.TRACE = function(method, msg) {
   if (DEBUGLOGGING) {
     console.log(
       'RadiatusTransportProvider.' + 
+      this.name + '.' +
       method +
-      ':' + this.name +
       ':' + msg
     );
   }
@@ -188,18 +188,23 @@ RadiatusTransportProvider.prototype._onServerMessage = function(finishSetup, msg
     if (parsedMsg.cmd == 'ready') {
       this.TRACE('_onServerMessage', 'ready');
       this.isInitializing = false;
+      // Call the setup() continuation
       finishSetup.finish(null);
+      // Flush queued of requests
       while(this.queuedRequests.length > 0) {
         this.conn.send(this.queuedRequests.shift());
       }
       return;
+    // Returned an error
     } else if (typeof parsedMsg.err !== 'undefined') {
       console.error('RadiatusTransportProvider.send: return error - ' + parsedMsg.err);
       this.liveRequests[id].continuation(undefined, this._createError(parsedMsg.err));
       delete this.liveRequests[id];
+    // Successfully stored buffer on server. Now inform peer
     } else if (parsedMsg.cmd == 'send' && parsedMsg.bufferSetDone === true) {
       this.TRACE('_onServerMessage', 'buffer is cached on server, tell peer to D/L');
       this.peerChannel.send(JSON.stringify(this.liveRequests[id]));
+    // The server needs us to send the buffer
     } else if (parsedMsg.cmd == 'send' && parsedMsg.needBufferFromClient === true) {
       this.TRACE('_onServerMessage', 'sending buffer to server '+parsedMsg.hash);
       var buf = this.cachedBuffer.retrieve(parsedMsg.hash, parsedMsg.id);
@@ -208,6 +213,7 @@ RadiatusTransportProvider.prototype._onServerMessage = function(finishSetup, msg
       } else {
         console.error('RadiatusTransportProvider._onServerMessage: missing buffer '+parsedMsg.hash);
       }
+    // Receiving a buffer from the server
     } else if (parsedMsg.cmd === 'receive' && parsedMsg.bufferSent === true) {
       this.TRACE('_onServerMessage', 'receive returns buffer with hash='+parsedMsg.hash);
       this.peerChannel.send(JSON.stringify(parsedMsg.senderReq));

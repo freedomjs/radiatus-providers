@@ -17,8 +17,7 @@ function TransportSiteHandler(appid) {
  * Set the appropriate listeners on the WebSocket
  **/
 TransportSiteHandler.prototype.addConnection = function(username, ws) {
-  this.logger.trace('addConnection: enter');
-  this.logger.debug('addConnection: for username=' + username);
+  this.logger.debug(username+'.addConnection: enter');
 
   // Store new client
   if (!this.clients.hasOwnProperty(username)) { 
@@ -34,15 +33,14 @@ TransportSiteHandler.prototype.addConnection = function(username, ws) {
     'userId': username,
   }));
 
-  this.logger.trace('addConnection: exit');
+  this.logger.trace(username+'.addConnection: exit');
 };
 
 /**
  * Handler for incoming message on a WebSocket connection
  **/
 TransportSiteHandler.prototype._onMessage = function(connHandler, msg, flags) {
-  this.logger.trace('_onMessage: enter');
-  this.logger.debug('_onMessage: message from '+connHandler.username);
+  this.logger.trace(connHandler.id()+'._onMessage: enter');
   
   // Reroute binary messages
   if (flags.binary) {
@@ -52,38 +50,38 @@ TransportSiteHandler.prototype._onMessage = function(connHandler, msg, flags) {
   
   // Process commands
   try {
-    this.logger.debug(msg);
+    this.logger.debug(connHandler.id()+'.onMessage:'+msg);
     var req = JSON.parse(msg);
     if (req.cmd == 'send') {
       this._handleSend(connHandler, req);
     } else if (req.cmd == 'receive') {
       this._handleReceive(connHandler, req);
     } else {
-      this.logger.warn('_onMessage: cannot process message');
+      this.logger.warn(connHandler.id()+'._onMessage: cannot process message');
     }
   } catch (e) {
-    this.logger.error('_onMessage: Failed processing message');
+    this.logger.error(connHandler.id()+'._onMessage: Failed processing message');
     this.logger.error(e.message);
   }
 
-  this.logger.trace('_onMessage: exit');
+  this.logger.trace(connHandler.id()+'._onMessage: exit');
 };
 
 /**
  * Handle send
  */
 TransportSiteHandler.prototype._handleSend = function(connHandler, req) {
-  this.logger.trace('_handleSend: enter');
+  this.logger.trace(connHandler.id()+'._handleSend: enter');
   CachedBuffer.findOne(
     { key:req.hash }, 
     'key expires'
   ).exec().then(function(connHandler, req, doc) {
     if (doc) {
-      this.logger.debug('_handleSend: buffer already cached, telling client');
+      this.logger.debug(connHandler.id()+'._handleSend: buffer already cached, telling client');
       req.needBufferFromClient = false;
       req.bufferSetDone = true;
     } else {
-      this.logger.debug('_handleSend: requesting buffer from client');
+      this.logger.debug(connHandler.id()+'._handleSend: requesting buffer from client');
       req.needBufferFromClient = true;
       req.bufferSetDone = false;
       connHandler.binaryCallback(req.hash, function(connHandler, req, err) {
@@ -91,7 +89,7 @@ TransportSiteHandler.prototype._handleSend = function(connHandler, req) {
           this._onError(connHandler, req, err);
           return;
         }
-        this.logger.debug('_handleBinary: buffer saved sending final message to client');
+        this.logger.debug(connHandler.id()+'._handleBinary: buffer saved sending final message to client');
         req.needBufferFromClient = false;
         req.bufferSetDone = true;
         connHandler.websocket.send(JSON.stringify(req));
@@ -105,7 +103,7 @@ TransportSiteHandler.prototype._handleSend = function(connHandler, req) {
  * Handle receive
  */
 TransportSiteHandler.prototype._handleReceive = function(connHandler, req) {
-  this.logger.trace('_handleReceive: enter'); 
+  this.logger.trace(connHandler.id()+'._handleReceive: enter'); 
   CachedBuffer.findOneAndUpdate(
     { key:req.hash },
     {
@@ -114,11 +112,12 @@ TransportSiteHandler.prototype._handleReceive = function(connHandler, req) {
     }
   ).exec().then(function (connHandler, req, doc) {
     if (doc) {
+      this.logger.debug(connHandler.id()+'._handleReceive: serving buffer to client hash='+req.hash);
       connHandler.websocket.send(doc.value, { binary:true });
       req.bufferSent = true;
       connHandler.websocket.send(JSON.stringify(req));
     } else {
-      this.logger.warn('_handleReceive: content missing for hash='+req.hash);
+      this.logger.warn(connHandler.id()+'._handleReceive: content missing for hash='+req.hash);
       this.onError.bind(this, connHandler, req)(new Error('data missing'));
     }
   }.bind(this, connHandler, req)).onReject(this._onError.bind(this, connHandler, req));
@@ -128,9 +127,8 @@ TransportSiteHandler.prototype._handleReceive = function(connHandler, req) {
  * Handler for when promises from mongoose calls are rejected
  **/
 TransportSiteHandler.prototype._onError = function(connHandler, req, err) {
-  this.logger.error('_onError: mongoose error');
-  this.logger.error(err);
-  this.logger.error(err.message);
+  this.logger.error(connHandler.id()+'._onError: mongoose error: '+err.message);
+  //this.logger.error(err);
   req.err = "UNKNOWN";
   connHandler.websocket.send(JSON.stringify(req));
 };
@@ -139,13 +137,12 @@ TransportSiteHandler.prototype._onError = function(connHandler, req, err) {
  * Handler for 'close' event from a WebSocket
  **/
 TransportSiteHandler.prototype._onClose = function(connHandler) {
-  this.logger.trace('_onClose: enter');
-  this.logger.debug('_onClose: '+connHandler.username+' closed connection');
+  this.logger.debug(connHandler.id()+'._onClose: closed connection');
   this.clients[connHandler.username] = this.clients[connHandler.username].filter(function(connHandler, elt) {
     return connHandler !== elt;
   }.bind(this, connHandler));
   //delete this.clients[username];
-  this.logger.trace('_onClose: exit');
+  this.logger.trace(connHandler.id()+'._onClose: exit');
 };
 
 module.exports = TransportSiteHandler;
