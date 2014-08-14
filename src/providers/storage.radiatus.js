@@ -52,7 +52,7 @@ RadiatusStorageProvider.prototype.ERROR = function(method, msg, err) {
     toPrint += ', '+err.message;
   }
   console.error(toPrint);
-  console.trace();
+  //console.trace();
   if (err) console.error(err);
 };
 
@@ -145,7 +145,11 @@ RadiatusStorageProvider.prototype._onMessage = function(msg) {
       this.TRACE('_onMessage', 'sending buffer '+parsedMsg.value);
       var buf = this.cachedBuffer.retrieve(parsedMsg.value, parsedMsg.id);
       if (buf !== null) {
-        this.conn.send({ buffer: buf });
+        this.conn.send({ buffer: buf }).then(function() {
+          this.TRACE('_onMessage', 'buffer successfully sent');
+        }.bind(this), function(err) {
+          this.ERROR('_onMessage', 'buffer failed to send', err);
+        }.bind(this));//;
       } else {
         this.ERROR('_onMessage', 'missing buffer '+parsedMsg.value);
       }
@@ -168,7 +172,7 @@ RadiatusStorageProvider.prototype._onMessage = function(msg) {
 
 RadiatusStorageProvider.prototype._createRequest = function(method, key, value, cont) {
   //DEBUG just for testing
-  if (DEBUG) { this.cachedBuffer.clear(); }
+  if (typeof DEBUG !== 'undefined' && DEBUG) { this.cachedBuffer.clear(); }
   //DEBUG
   if (this.conn === null) {
     this.ERROR(method, 'returning error OFFLINE');

@@ -1,6 +1,5 @@
 /*globals SparkMD5 */
 /*jslint indent:2, white:true, node:true, sloppy:true, browser:true */
-
 /**
  * Keeps track of ArrayBuffers across calls to the
  * storage/transport interfaces.
@@ -52,6 +51,7 @@ CachedBuffer.prototype.addBlob = function(blob, id) {
  **/
 CachedBuffer.prototype.add = function(buffer, id) {
   if (D) console.log('CachedBuffer.add: enter, id='+id);
+  
   var spark = new SparkMD5.ArrayBuffer();
   spark.append(buffer);
   var hash = spark.end();
@@ -105,4 +105,3 @@ CachedBuffer.prototype.retrieve = function(hash, id) {
   if (D) console.log('CachedBuffer.retrieve: returning '+hash);
   return retValue;
 };
-

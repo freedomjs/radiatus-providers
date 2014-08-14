@@ -105,7 +105,7 @@ StorageSiteHandler.prototype.get = function(connHandler, req) {
     } else if (retValue === null) {
       return null;
     } else {
-      this.logger.debug(connHandler.id()+'._handlers.get: searching for buffer '+req.ret);
+      this.logger.debug(connHandler.id()+'._handlers.get: searching for buffer '+retValue);
       return CachedBuffer.findOneAndUpdate(
         { key: retValue }, 
         { lastAccessed: new Date() }
@@ -118,7 +118,10 @@ StorageSiteHandler.prototype.get = function(connHandler, req) {
       req.ret = doc.key;
       retValue = doc.value; 
     }
-    this.logger.debug(connHandler.id()+'._handlers.get: returning buffer ' + doc.key);
+    this.logger.debug(connHandler.id()+'._handlers.get: returning buffer '+doc.key);
+    if (retValue && retValue.length) {
+      this.logger.debug('._handlers.get: length='+retValue.length);
+    }
     connHandler.websocket.send(retValue, { binary:true });
     req.bufferSetDone = true;
     connHandler.websocket.send(JSON.stringify(req));
