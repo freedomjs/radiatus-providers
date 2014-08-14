@@ -87,7 +87,7 @@ RadiatusTransportProvider.prototype.setup = function(name, channelId, continuati
   this.conn = this.websocket(this.WS_URL);
   this.conn.on("onMessage", this._onServerMessage.bind(this, finishSetup));
   this.conn.on("onError", function (continuation, error) {
-    this.conn = null;
+    //this.conn = null;
     this.ERROR('conn.on', 'onError event fired', error);
     continuation(undefined, this._createError('UNKNOWN'));
   }.bind(this, continuation));

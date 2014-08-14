@@ -89,7 +89,7 @@ RadiatusStorageProvider.prototype._initialize = function() {
   this.conn = this.websocket(this.WS_URL);
   this.conn.on("onMessage", this._onMessage.bind(this));
   this.conn.on("onError", function (error) {
-    this.conn = null;
+    //this.conn = null;
     this.ERROR('conn.on', 'onError event', error);
   }.bind(this));
   this.conn.on("onClose", function (msg) {

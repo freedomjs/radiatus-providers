@@ -105,7 +105,7 @@ RadiatusSocialProvider.prototype.login = function(loginOpts, continuation) {
   // successful login.
   this.conn.on("onMessage", this.onMessage.bind(this, finishLogin));
   this.conn.on("onError", function (cont, error) {
-    this.conn = null;
+    //this.conn = null;
     this.ERROR('conn.on', 'onError event', error);
     cont.finish(undefined, this.err('ERR_CONNECTION'));
   }.bind(this, finishLogin));
