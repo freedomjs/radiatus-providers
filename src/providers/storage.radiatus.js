@@ -32,7 +32,7 @@ function RadiatusStorageProvider(dispatchEvent, webSocket) {
     this.WS_URL = 'ws://localhost:8082/route/?freedomAPI=storage';
   }
   this._initialize();
-  this.TRACE('constructor', 'running in worker '+self.location.href);
+  //this.TRACE('constructor', 'running in worker '+self.location.href);
 }
 
 RadiatusStorageProvider.prototype.TRACE = function(method, msg) {

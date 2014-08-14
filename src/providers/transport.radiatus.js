@@ -30,7 +30,7 @@ function RadiatusTransportProvider(dispatchEvent, webSocket) {
     this.WS_URL = 'ws://localhost:8082/route/?freedomAPI=transport';
   }
 
-  this.TRACE('constructor', 'running in worker ' + self.location.href);
+  //this.TRACE('constructor', 'running in worker ' + self.location.href);
 }
 
 RadiatusTransportProvider.prototype.TRACE = function(method, msg) {

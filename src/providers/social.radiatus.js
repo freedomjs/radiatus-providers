@@ -39,7 +39,7 @@ function RadiatusSocialProvider(dispatchEvent, webSocket) {
   this.users = {};    // List of seen users (<user_profile>)
   this.clients = {};  // List of seen clients (<client_state>)
 
-  this.TRACE('constructor', 'running in worker ' + self.location.href);
+  //this.TRACE('constructor', 'running in worker ' + self.location.href);
 }
 
 RadiatusSocialProvider.prototype.TRACE = function(method, msg) {
