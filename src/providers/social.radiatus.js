@@ -53,13 +53,13 @@ RadiatusSocialProvider.prototype.TRACE = function(method, msg) {
   }
 };
 RadiatusSocialProvider.prototype.ERROR = function(method, msg, err) {
-  var toPrint = 'RadiatusTransportProvider.'+method+':';
+  var toPrint = 'RadiatusSocialProvider.'+method+':';
   toPrint += msg;
   if (err && err.message) {
     toPrint += ', '+err.message;
   }
   console.error(toPrint);
-  console.trace();
+  //console.trace();
   if (err) console.error(err);
 };
 

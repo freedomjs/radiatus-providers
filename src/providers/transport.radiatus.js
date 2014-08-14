@@ -50,7 +50,7 @@ RadiatusTransportProvider.prototype.ERROR = function(method, msg, err) {
     toPrint += ', '+err.message;
   }
   console.error(toPrint);
-  console.trace();
+  //console.trace();
   if (err) console.error(err);
 };
 
