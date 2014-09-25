@@ -7,7 +7,7 @@
     "radiatusSecret": "secret"
   },
   "log": {
-    "level": "trace",
+    "level": "info",
     "levels": {
       "trace": 0,
       "verbose": 1,
