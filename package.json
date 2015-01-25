@@ -43,7 +43,8 @@
     "freedom": "^0.6.18",
     "gulp": "~3.8.10",
     "gulp-karma": "0.0.4",
-    "gulp-jshint": "~1.9.0"
+    "gulp-jshint": "~1.9.0",
+    "node-static": "~0.7.6"
   },
   "dependencies": {
     "express": "~4.6.1",

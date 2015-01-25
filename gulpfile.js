@@ -23,6 +23,8 @@ var gulp = require("gulp");
 var jshint = require("gulp-jshint");
 var karma = require("gulp-karma");
 var through = require("through");
+var static = require("node-static");
+var http = require("http");
 
 gulp.task("lint", function() {
   return gulp.src([
@@ -31,6 +33,18 @@ gulp.task("lint", function() {
       "demo/**/*.js"
     ]).pipe(jshint({ lookup: true }))
     .pipe(jshint.reporter("default"));
+});
+
+gulp.task("demo", function() {
+  var fileserver = new static.Server("demo/");
+  // Serve static files from demo/
+  require("http").createServer(function(req, res) {
+    req.addListener("end", function() {
+      fileserver.serve(req, res);
+    }).resume();
+  }).listen(8000);
+  // Start Radiatus Providers Server
+  require("./index");
 });
 
 gulp.task("default", [ "lint" ]);
