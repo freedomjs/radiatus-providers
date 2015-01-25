@@ -2,7 +2,7 @@
   "name": "radiatus-providers",
   "description": "Social/Transport/Storage Providers",
   "version": "0.0.6",
-  "homepage": "http://freedomjs.org",
+  "homepage": "http://www.freedomjs.org",
   "bugs": {
     "url": "http://github.com/freedomjs/radiatus-providers/issues",
     "email": "freedom@cs.washington.edu"
@@ -20,27 +20,30 @@
     "debug": "supervisor -i node_modules/ -- app.js",
     "test": "grunt test"
   },
-  "main": "Gruntfile.js",
+  "main": "app.js",
   "devDependencies": {
     "es5-shim": "^3.1.1",
     "es6-promise": "^1.0.0",
     "grunt": "~0.4.3",
+    "grunt-bump": "0.0.14",
+    "grunt-concurrent": "^0.5.0",
     "grunt-contrib-clean": "~0.5.0",
     "grunt-contrib-connect": "~0.8.0",
     "grunt-contrib-jshint": "~0.10.0",
-    "karma": "~0.12.15",
     "grunt-karma": "~0.8.3",
+    "grunt-npm": "0.0.2",
+    "grunt-supervisor": "^0.2.4",
+    "karma": "~0.12.15",
     "karma-jasmine": "~0.2.2",
     "karma-chrome-launcher": "~0.1.3",
     "karma-firefox-launcher": "~0.1.3",
     "karma-phantomjs-launcher": "~0.1.4",
     "karma-unicorn-reporter": "^0.1.4",
     "karma-story-reporter": "^0.2.2",
-    "grunt-bump": "0.0.14",
-    "grunt-npm": "0.0.2",
-    "freedom": "^0.5.5",
-    "grunt-supervisor": "^0.2.4",
-    "grunt-concurrent": "^0.5.0"
+    "freedom": "^0.6.18",
+    "gulp": "~3.8.10",
+    "gulp-karma": "0.0.4",
+    "gulp-jshint": "~1.9.0"
   },
   "dependencies": {
     "express": "~4.6.1",
@@ -53,6 +56,8 @@
     "config": "^1.0.2",
     "winston": "~0.7.3",
     "mongoose": "~3.8.14",
-    "q": "~1.0.1"
+    "q": "~1.0.1",
+    "redis": "~0.12.1",
+    "through": "~2.3.6"
   }
 }

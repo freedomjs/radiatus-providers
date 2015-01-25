@@ -1,7 +1,9 @@
+/*jshint browser:true*/
 /*
  * These functions provide interaction for the freedom.js chat demo.
  */
 window.onload = function() {
+  "use strict";
   document.getElementById('msg-input').focus();
   // If messages are going to a specific user, store that here.
   var activeBuddylistEntry;
@@ -25,7 +27,7 @@ window.onload = function() {
   }
 
   function makeDisplayString(buddylistEntry) {
-    return buddylistEntry.name && buddylistEntry.name != buddylistEntry.userId ?
+    return buddylistEntry.name && buddylistEntry.name !== buddylistEntry.userId ?
         buddylistEntry.name + ' (' + buddylistEntry.userId + ')' :
         buddylistEntry.userId;
   }
