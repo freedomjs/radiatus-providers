@@ -36,11 +36,17 @@ gulp.task("lint", function() {
 });
 
 gulp.task("demo", function() {
-  var fileserver = new static.Server("demo/");
+  var fileserver = new static.Server("./");
   // Serve static files from demo/
   require("http").createServer(function(req, res) {
     req.addListener("end", function() {
-      fileserver.serve(req, res);
+      if (req.url === "/") {
+        res.statusCode = "302";
+        res.setHeader("Location", "/demo/index.html");
+        res.end();
+      } else {
+        fileserver.serve(req, res);
+      }
     }).resume();
   }).listen(8000);
   // Start Radiatus Providers Server

@@ -3,18 +3,10 @@
 <head>
   <title>Chat ~ freedom.js Demos</title>
   <meta http-equiv='Content-Type' content='text/html;charset=utf-8' />
-  <link href='style.css' rel='stylesheet' type='text/css' />
-  <!-- Include freedom.js, pass it the manifest, and a set of options -->
-  <script type='text/javascript'
-      src='http://freedomjs.org/release/v0.5/freedom.v0.5.0.js'
-      data-manifest='manifest.json'>
-  {
-    "strongIsolation": true,
-    "stayLocal": true,
-    "debug": false
-  }
-  </script>
-  <script type='text/javascript' src='ux.js'></script>
+  <link href='../node_modules/freedom/demo/style.css' rel='stylesheet' type='text/css' />
+  <!-- Include freedom.js -->
+  <script type='text/javascript' src='../node_modules/freedom/freedom.js'></script>
+  <script type='text/javascript' src='../node_modules/freedom/demo/chat/page.js'></script>
 
   <style type='text/css'>
   section {border: 1px solid black; position:relative; display: inline-block; vertical-align:top;}
@@ -27,8 +19,8 @@
 
 <body>
   <header id='logo'>freedom.js</header>
-  <header><span id='triangle'>&#9654;</span> Demos</header>
-  <header><span id='triangle'>&#9654;</span> Chat</header>
+  <header><span class='triangle'>&#9654;</span> Demos</header>
+  <header><span class='triangle'>&#9654;</span> Chat</header>
   <div style='clear:both; height:15px;'></div>
   <section>
     <div id='messagelist' class='text'></div>
