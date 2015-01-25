@@ -3,7 +3,6 @@ node_modules/
 
 ###
 config/production.json
-dist/
 
 ### scrap
 .*.swp

@@ -25,17 +25,63 @@ var karma = require("gulp-karma");
 var through = require("through");
 var static = require("node-static");
 var http = require("http");
+var browserify = require("browserify");
+var source = require('vinyl-source-stream');
+var buffer = require('vinyl-buffer');
+var uglify = require('gulp-uglify');
+var sourcemaps = require('gulp-sourcemaps');
+var fs = require("fs-extra");
+var path = require("path");
+
+var copyToDist = function(filepath) {
+  var filename = path.basename(filepath);
+  fs.copy(
+    filepath, 
+    "./dist/" + filename, 
+    function(err) { if (err) { throw err; } }
+  );
+}
+
+var browserifyTarget = function(entry) {
+  var filename = path.basename(entry);
+  var bundler = browserify({
+    entries: [ entry ],
+    debug: true
+  });
+  var bundle = function() {
+    return bundler
+      .bundle()
+      .pipe(source(filename))
+      .pipe(buffer())
+      .pipe(sourcemaps.init({ loadMaps: true }))
+      // Add transformation tasks to the pipeline here.
+      .pipe(uglify())
+      .pipe(sourcemaps.write('./'))
+      .pipe(gulp.dest('./dist/'));
+  };
+  return bundle();
+};
+
+gulp.task("build_providers", function() {
+  copyToDist("./src/client/social.radiatus.json");
+  copyToDist("./src/client/storage.radiatus.json");
+  copyToDist("./src/client/storebuffer.radiatus.json");
+  copyToDist("./src/client/transport.radiatus.json");
+  browserifyTarget('./src/client/social.radiatus.js');
+  browserifyTarget('./src/client/storage.radiatus.js');
+  browserifyTarget('./src/client/transport.radiatus.js');
+  return;
+});
 
 gulp.task("lint", function() {
   return gulp.src([
-      "app.js",
       "src/**/*.js",
       "demo/**/*.js"
     ]).pipe(jshint({ lookup: true }))
     .pipe(jshint.reporter("default"));
 });
 
-gulp.task("demo", function() {
+gulp.task("launch_demo", function() {
   var fileserver = new static.Server("./");
   // Serve static files from demo/
   require("http").createServer(function(req, res) {
@@ -70,4 +116,6 @@ gulp.task("test", function() {
 
 });
 
-gulp.task("default", [ "lint", "test" ]);
+gulp.task("build", [ "lint", "build_providers" ]);
+gulp.task("demo", [ "build", "launch_demo" ]);
+gulp.task("default", [ "build", "test" ]);

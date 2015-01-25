@@ -6,11 +6,12 @@
  * a radiatus-providers server
  **/
 var DEBUGLOGGING = false;
+var CachedBuffer = require("./cachedbuffer");
 
 function RadiatusTransportProvider(dispatchEvent, webSocket) {
   this.dispatchEvent = dispatchEvent;
   this.websocket = freedom["core.websocket"] || webSocket;
-  this.ERRCODE = freedom.transport().ERRCODE;
+  this.ERRCODE = freedom().ERRCODE;
 
   this.name = null;
   this.conn = null;
@@ -237,8 +238,7 @@ RadiatusTransportProvider.prototype._onServerMessage = function(finishSetup, msg
 };
 
 /** REGISTER PROVIDER **/
-if (typeof freedom !== 'undefined' &&
-    typeof freedom.transport !== 'undefined') {
-  freedom.transport().provideAsynchronous(RadiatusTransportProvider);
+if (typeof freedom !== 'undefined') {
+  freedom().provideAsynchronous(RadiatusTransportProvider);
 }
 

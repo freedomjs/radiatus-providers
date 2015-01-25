@@ -6,11 +6,13 @@
  * a radiatus-providers server
  **/
 var DEBUGLOGGING = false;
+var CachedBuffer = require("./cachedbuffer");
 
 function RadiatusStorageProvider(dispatchEvent, webSocket) {
   this.dispatchEvent = dispatchEvent;
   this.cachedBuffer = new CachedBuffer();
   this.websocket = freedom["core.websocket"] || webSocket;
+  //@todo Need to replace this
   if (typeof freedom.storage !== 'undefined') {
     this.ERRCODE = freedom.storage().ERRCODE;
     this.valueIsHash = false;
@@ -218,11 +220,6 @@ RadiatusStorageProvider.prototype._createError = function(code) {
 
 
 /** REGISTER PROVIDER **/
-if (typeof freedom !== 'undefined' &&
-    typeof freedom.storage !== 'undefined') {
-  freedom.storage().provideAsynchronous(RadiatusStorageProvider);
-}
-if (typeof freedom !== 'undefined' &&
-    typeof freedom.storebuffer !== 'undefined') {
-  freedom.storebuffer().provideAsynchronous(RadiatusStorageProvider);
+if (typeof freedom !== 'undefined') {
+  freedom().provideAsynchronous(RadiatusStorageProvider);
 }

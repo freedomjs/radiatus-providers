@@ -30,7 +30,7 @@ function RadiatusSocialProvider(dispatchEvent, webSocket) {
     this.WS_URL = 'ws://localhost:8082/route/';
     this.WS_QUERYSTR = '?freedomAPI=social';
   }
-  this.social= freedom.social();
+  this.social= freedom();
 
   this.conn = null;     // Web Socket
   this.userId = null;   // userId of this user
@@ -333,5 +333,5 @@ RadiatusSocialProvider.prototype.err = function(code) {
 
 /** REGISTER PROVIDER **/
 if (typeof freedom !== 'undefined') {
-  freedom.social().provideAsynchronous(RadiatusSocialProvider);
+  freedom().provideAsynchronous(RadiatusSocialProvider);
 }

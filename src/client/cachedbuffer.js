@@ -5,6 +5,8 @@
  * storage/transport interfaces.
  **/
 
+var SparkMD5 = require("spark-md5");
+
 var D;
 function CachedBuffer() {
   this.cache = {};    // H(buffer) -> { ids: [], buffer: ArrayBuffer}
@@ -105,3 +107,5 @@ CachedBuffer.prototype.retrieve = function(hash, id) {
   if (D) console.log('CachedBuffer.retrieve: returning '+hash);
   return retValue;
 };
+
+module.exports = CachedBuffer

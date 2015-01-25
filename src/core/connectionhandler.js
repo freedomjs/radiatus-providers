@@ -1,4 +1,4 @@
-var SparkMD5 = require('../providers/lib/spark-md5.min');
+var SparkMD5 = require('spark-md5');
 var CachedBuffer = require('../models/cachedbuffer');
 var config = require('config');
 

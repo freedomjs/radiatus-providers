@@ -2,12 +2,9 @@
   "name": "Radiatus Storebuffer",
   "description": "Storebuffer provider using node.js server with mongodb",
   "app": {
-    "script": [
-      "lib/spark-md5.min.js",
-      "cachedbuffer.js",
-      "storage.radiatus.js"
-    ]
+    "script": [ "storage.radiatus.js" ]
   },
+  "default": "storebuffer",
   "provides": [
     "storebuffer"
   ],
