@@ -53,4 +53,21 @@ gulp.task("demo", function() {
   require("./index");
 });
 
-gulp.task("default", [ "lint" ]);
+gulp.task("test", function() {
+  // Start Radiatus Providers Server
+  //require("./index");
+
+  /** 
+   * return gulp.src(testFiles)
+   *   .pipe(karma({
+   *     configFile: 'karma.conf.js',
+   *     action: 'run'
+   *   }))
+   *   .on('error', function(err) { 
+   *     throw err; 
+   *   });
+   **/
+
+});
+
+gulp.task("default", [ "lint", "test" ]);
