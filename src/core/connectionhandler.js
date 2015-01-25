@@ -1,6 +1,7 @@
 var SparkMD5 = require('spark-md5');
-var CachedBuffer = require('../models/cachedbuffer');
 var config = require('config');
+var CachedBuffer = require('../models/cachedbuffer');
+var BufferUtil = require("../lib/bufferutil");
 
 var counter = 0;
 /**
@@ -10,6 +11,7 @@ var counter = 0;
  **/
 
 function ConnectionHandler(appid, username, ws) {
+  "use strict";
   this.appid = appid;
   this.username = username;
   this.num = counter++;
@@ -21,13 +23,16 @@ function ConnectionHandler(appid, username, ws) {
 }
 
 ConnectionHandler.prototype.initialize = function() {
+  "use strict";
 };
 
 ConnectionHandler.prototype.id = function() {
+  "use strict";
   return this.username + '[' + this.num + ']';
 };
 
 ConnectionHandler.prototype.binaryCallback = function(hash, cb) {
+  "use strict";
   this.binaryCallbacks[hash] = cb;
 };
 
@@ -35,11 +40,12 @@ ConnectionHandler.prototype.binaryCallback = function(hash, cb) {
  * Handle binary objects from a WebSocket
  */
 ConnectionHandler.prototype.handleBinary = function(msg, expires) {
+  "use strict";
   this.logger.trace(this.id()+'._handleBinary: enter');
   
   // Hash the buffer myself (SparkMD5 only works with ArrayBuffers)
   var spark = new SparkMD5.ArrayBuffer();
-  spark.append(toArrayBuffer(msg));
+  spark.append(BufferUtil.toArrayBuffer(msg));
   var hash = spark.end();
   if (!this.binaryCallbacks.hasOwnProperty(hash)) {
     this.logger.warn(this.id()+'._handleBinary: no callbacks registered for ' + hash);
@@ -64,25 +70,5 @@ ConnectionHandler.prototype.handleBinary = function(msg, expires) {
   
   this.logger.trace(this.id()+'._handleBinary: exit');
 };
-
-/**
- * Helper functions to convert between node.js Buffers and ArrayBuffers
- **/
-function toArrayBuffer(buffer) {
-  var ab = new ArrayBuffer(buffer.length);
-  var view = new Uint8Array(ab);
-  for (var i = 0; i < buffer.length; ++i) {
-    view[i] = buffer[i];
-  }
-  return ab;
-}
-function toBuffer(ab) {
-  var buffer = new Buffer(ab.byteLength);
-  var view = new Uint8Array(ab);
-  for (var i = 0; i < buffer.length; ++i) {
-    buffer[i] = view[i];
-  }
-  return buffer;
-}
 
 module.exports = ConnectionHandler;

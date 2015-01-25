@@ -17,7 +17,7 @@ var WebSocketServer = require('ws').Server;
 var GlobalSocialSiteHandler = require('./core/sitehandler-social-global');
 var StorageSiteHandler = require('./core/sitehandler-storage');
 var TransportSiteHandler = require('./core/sitehandler-transport');
-var getLogger = require('./lib/logger');
+var logger = require('./lib/logger')("app.js");
 
 /** APPLICATION **/
 var app = express();
@@ -27,10 +27,12 @@ var siteHandlers = {};
 charlatan.setLocale('en-us');
 mongoose.connect(config.get('database.mongoURL'));
 mongoose.connection.on('error', function(e) {
+  "use strict";
   logger.error('Mongoose error');
   logger.error(e);
 });
 mongoose.connection.once('open', function() {
+  "use strict";
   logger.info('Mongoose connection online established to ' + config.get('database.mongoURL'));
 });
 
@@ -47,7 +49,6 @@ if (opts.debug) {
 } else {
   app.use(morgan('common'));
 }
-var logger = getLogger('app.js');
 
 /** STATIC CONTENT **/
 app.use(express.static(path.join(__dirname, 'src/providers')));
@@ -55,16 +56,18 @@ app.use(express.static(path.join(__dirname, 'src/providers')));
 /** WebSocket Router **/
 // Given a HTTP request, check if allowed for an API
 function isAllowed(api, req) {
+  "use strict";
   var parsedUrl = urlParser.parse(req.url);
   var parsedQuery = queryParser.parse(parsedUrl.query);
   
   return parsedQuery.hasOwnProperty('radiatusUsername') &&
     parsedQuery.hasOwnProperty('radiatusSecret') &&
-    parsedQuery.radiatusSecret == config.get('webserver.radiatusSecret') &&
+    parsedQuery.radiatusSecret === config.get('webserver.radiatusSecret') &&
     parsedQuery.hasOwnProperty('freedomAPI') && 
-    parsedQuery.freedomAPI == api;
+    parsedQuery.freedomAPI === api;
 }
 wss.on('connection', function(ws) {
+  "use strict";
   logger.trace('wss.on("connection"): enter');
   var origin = ws.upgradeReq.headers.origin;
   var url = ws.upgradeReq.url;
@@ -112,6 +115,7 @@ wss.on('connection', function(ws) {
 });
 
 app.get('*', function(req, res) {
+  "use strict";
   logger.trace('app.get("*"): enter');
   res.status = 404;
   res.send('404 - Not Found');

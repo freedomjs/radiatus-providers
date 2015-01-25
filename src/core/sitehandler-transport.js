@@ -7,6 +7,7 @@ var config = require('config');
  * Site Handler for Transport
  **/
 function TransportSiteHandler(appid) {
+  "use strict";
   this.appid = appid;
   this.logger = getLogger(appid);
   this.clients = {};      //Store active clients
@@ -17,6 +18,7 @@ function TransportSiteHandler(appid) {
  * Set the appropriate listeners on the WebSocket
  **/
 TransportSiteHandler.prototype.addConnection = function(username, ws) {
+  "use strict";
   this.logger.debug(username+'.addConnection: enter');
 
   // Store new client
@@ -40,6 +42,7 @@ TransportSiteHandler.prototype.addConnection = function(username, ws) {
  * Handler for incoming message on a WebSocket connection
  **/
 TransportSiteHandler.prototype._onMessage = function(connHandler, msg, flags) {
+  "use strict";
   this.logger.trace(connHandler.id()+'._onMessage: enter');
   
   // Reroute binary messages
@@ -52,9 +55,9 @@ TransportSiteHandler.prototype._onMessage = function(connHandler, msg, flags) {
   try {
     this.logger.debug(connHandler.id()+'._onMessage:'+msg);
     var req = JSON.parse(msg);
-    if (req.cmd == 'send') {
+    if (req.cmd === 'send') {
       this._handleSend(connHandler, req);
-    } else if (req.cmd == 'receive') {
+    } else if (req.cmd === 'receive') {
       this._handleReceive(connHandler, req);
     } else {
       this.logger.warn(connHandler.id()+'._onMessage: cannot process message');
@@ -71,6 +74,7 @@ TransportSiteHandler.prototype._onMessage = function(connHandler, msg, flags) {
  * Handle send
  */
 TransportSiteHandler.prototype._handleSend = function(connHandler, req) {
+  "use strict";
   this.logger.trace(connHandler.id()+'._handleSend: enter');
   CachedBuffer.findOne(
     { key:req.hash }, 
@@ -103,6 +107,7 @@ TransportSiteHandler.prototype._handleSend = function(connHandler, req) {
  * Handle receive
  */
 TransportSiteHandler.prototype._handleReceive = function(connHandler, req) {
+  "use strict";
   this.logger.trace(connHandler.id()+'._handleReceive: enter'); 
   CachedBuffer.findOneAndUpdate(
     { key:req.hash },
@@ -127,6 +132,7 @@ TransportSiteHandler.prototype._handleReceive = function(connHandler, req) {
  * Handler for when promises from mongoose calls are rejected
  **/
 TransportSiteHandler.prototype._onError = function(connHandler, req, err) {
+  "use strict";
   this.logger.error(connHandler.id()+'._onError: mongoose error: '+err.message);
   //this.logger.error(err);
   req.err = "UNKNOWN";
@@ -137,6 +143,7 @@ TransportSiteHandler.prototype._onError = function(connHandler, req, err) {
  * Handler for 'close' event from a WebSocket
  **/
 TransportSiteHandler.prototype._onClose = function(connHandler) {
+  "use strict";
   this.logger.debug(connHandler.id()+'._onClose: closed connection');
   this.clients[connHandler.username] = this.clients[connHandler.username].filter(function(connHandler, elt) {
     return connHandler !== elt;

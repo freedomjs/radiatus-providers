@@ -6,6 +6,7 @@ var getLogger = require('../lib/logger');
  *   all active WebSocket connections
  **/
 function GlobalSocialSiteHandler(appid) {
+  "use strict";
   this.appid = appid;
   this.logger = getLogger(appid);
   this.clients = {};    //Store active connections
@@ -16,6 +17,7 @@ function GlobalSocialSiteHandler(appid) {
  * Set the appropriate listeners on the WebSocket
  **/
 GlobalSocialSiteHandler.prototype.addConnection = function(username, ws) {
+  "use strict";
   this.logger.debug(username+'.addConnection: enter');
 
   // Store new client
@@ -39,6 +41,7 @@ GlobalSocialSiteHandler.prototype.addConnection = function(username, ws) {
  * Retrieve an array of all active users
  **/
 GlobalSocialSiteHandler.prototype.getAllUsers = function() {
+  "use strict";
   this.logger.trace('getAllUsers: enter');
   var ret = [];
   for (var k in this.clients) {
@@ -56,6 +59,7 @@ GlobalSocialSiteHandler.prototype.getAllUsers = function() {
  * user is now online/offline
  **/ 
 GlobalSocialSiteHandler.prototype.broadcastStatus = function(username, online) {
+  "use strict";
   this.logger.trace('broadcastStatus: enter');
   this.logger.debug('broadcastStatus: '+username+' online='+online);
   for (var k in this.clients) {
@@ -79,6 +83,7 @@ GlobalSocialSiteHandler.prototype.broadcastStatus = function(username, online) {
  * Handler for incoming message on a WebSocket connection
  **/
 GlobalSocialSiteHandler.prototype._onMessage = function(username, msg) {
+  "use strict";
   this.logger.debug(username+'._onMessage: enter');
   try {
     var parsedMsg = JSON.parse(msg);
@@ -104,6 +109,7 @@ GlobalSocialSiteHandler.prototype._onMessage = function(username, msg) {
  * Handler for 'close' event from a WebSocket
  **/
 GlobalSocialSiteHandler.prototype._onClose = function(username) {
+  "use strict";
   this.logger.debug(username+'._onClose: enter');
   delete this.clients[username];
   this.broadcastStatus(username, false);

@@ -16,6 +16,7 @@ var cachedBufferSchema = mongoose.Schema({
 });
 
 cachedBufferSchema.methods.setExpiry = function() {
+  "use strict";
   var now = new Date().getTime();
   this.expires = new Date(now + config.get('database.transportTTL'));
 };
