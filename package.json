@@ -16,8 +16,8 @@
     "url": "https://github.com/freedomjs/radiatus-providers"
   },
   "scripts": {
-    "start": "node app.js",
-    "debug": "supervisor -i node_modules/ -- app.js",
+    "start": "node index.js",
+    "debug": "supervisor -i node_modules/ -- index.js",
     "test": "grunt test"
   },
   "main": "app.js",

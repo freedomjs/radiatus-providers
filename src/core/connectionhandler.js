@@ -1,5 +1,5 @@
-var SparkMD5 = require('./providers/lib/spark-md5.min');
-var CachedBuffer = require('./models/cachedbuffer');
+var SparkMD5 = require('../providers/lib/spark-md5.min');
+var CachedBuffer = require('../models/cachedbuffer');
 var config = require('config');
 
 var counter = 0;

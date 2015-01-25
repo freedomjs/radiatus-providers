@@ -1,6 +1,6 @@
-var CachedBuffer = require('./models/cachedbuffer');
+var CachedBuffer = require('../models/cachedbuffer');
 var ConnectionHandler = require('./connectionhandler');
-var getLogger = require('./lib/logger');
+var getLogger = require('../lib/logger');
 var config = require('config');
 
 /**

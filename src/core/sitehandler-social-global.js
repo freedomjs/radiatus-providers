@@ -1,4 +1,4 @@
-var getLogger = require('./lib/logger');
+var getLogger = require('../lib/logger');
 
 /**
  * Site Handler for Social

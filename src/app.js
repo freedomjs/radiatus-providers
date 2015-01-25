@@ -14,10 +14,10 @@ var charlatan = require('charlatan');
 var mongoose = require('mongoose');
 
 var WebSocketServer = require('ws').Server;
-var GlobalSocialSiteHandler = require('./src/sitehandler-social-global');
-var StorageSiteHandler = require('./src/sitehandler-storage');
-var TransportSiteHandler = require('./src/sitehandler-transport');
-var getLogger = require('./src/lib/logger');
+var GlobalSocialSiteHandler = require('./core/sitehandler-social-global');
+var StorageSiteHandler = require('./core/sitehandler-storage');
+var TransportSiteHandler = require('./core/sitehandler-transport');
+var getLogger = require('./lib/logger');
 
 /** APPLICATION **/
 var app = express();
@@ -39,11 +39,6 @@ var opts = require('nomnom').option('debug', {
   abbr: 'd',
   flag: true,
   help: 'Print debugging info'
-}).option('port', {
-  abbr: 'p',
-  help: 'listening port',
-  metavar: 'PORT',
-  default: 8082
 }).parse();
 
 /** LOGGER **/
@@ -123,6 +118,4 @@ app.get('*', function(req, res) {
   logger.trace('app.get("*"): exit');
 });
 
-server.listen(opts.port, function() {
-  logger.info("Radiatus Providers Server listening on port " + opts.port);
-});
+module.exports = server;

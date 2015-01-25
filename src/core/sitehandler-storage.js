@@ -1,7 +1,7 @@
-var Storage = require('./models/storage');
-var CachedBuffer = require('./models/cachedbuffer');
+var Storage = require('../models/storage');
+var CachedBuffer = require('../models/cachedbuffer');
 var ConnectionHandler = require('./connectionhandler');
-var getLogger = require('./lib/logger');
+var getLogger = require('../lib/logger');
 
 /**
  * Site Handler for Storage
