@@ -1,5 +1,3 @@
-var FILES = require('./Gruntfile').FILES;
-
 module.exports = function(config) {
   "use strict";
   config.set({
@@ -11,16 +9,9 @@ module.exports = function(config) {
     // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
     frameworks: [ 'jasmine' ],
 
-    // list of files / patterns to load in the browser
-    // Testing Providers for now
-    files: FILES.karma.include,
-
-    // list of files to exclude
-    exclude: FILES.karma.exclude,
-    
     // web server port
     port: 9876,
-    proxies:  { '/': 'http://localhost:8000/' },
+    //proxies:  { '/': 'http://localhost:8000/' },
 
     // enable / disable colors in the output (reporters and logs)
     colors: true,

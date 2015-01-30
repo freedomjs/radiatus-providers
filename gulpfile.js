@@ -22,6 +22,8 @@ process.env.NODE_ENV = "test";
 var gulp = require("gulp");
 var jshint = require("gulp-jshint");
 var karma = require("gulp-karma");
+var fs = require("fs-extra");
+var path = require("path");
 var through = require("through");
 var nodeStatic = require("node-static");
 var http = require("http");
@@ -30,8 +32,6 @@ var source = require('vinyl-source-stream');
 var buffer = require('vinyl-buffer');
 var uglify = require('gulp-uglify');
 var sourcemaps = require('gulp-sourcemaps');
-var fs = require("fs-extra");
-var path = require("path");
 
 gulp.task("copy_provider_manifests", function() {
   "use strict";
@@ -109,18 +109,22 @@ gulp.task("launch_demo", function() {
 gulp.task("test_integration", function() {
   "use strict";
   // Start Radiatus Providers Server
-  //require("./index");
+  require("./index");
 
-  /** 
-   * return gulp.src(testFiles)
-   *   .pipe(karma({
-   *     configFile: 'karma.conf.js',
-   *     action: 'run'
-   *   }))
-   *   .on('error', function(err) { 
-   *     throw err; 
-   *   });
-   **/
+  // Browserify the integration test
+
+  // Run tests on Node.js
+
+  // Run tests on Chrome/Firefox
+  return gulp.src([
+    require.resolve("freedom"),
+    "build/spec-integration.js"
+  ]).pipe(karma({
+    configFile: 'karma.conf.js',
+    action: 'run'
+  })).on('error', function(err) { 
+    throw err; 
+  });
 
 });
 
