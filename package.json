@@ -20,7 +20,7 @@
     "debug": "supervisor -i node_modules/ -- index.js",
     "test": "gulp default"
   },
-  "main": "app.js",
+  "main": "index.js",
   "devDependencies": {
     "es5-shim": "^3.1.1",
     "es6-promise": "^1.0.0",
