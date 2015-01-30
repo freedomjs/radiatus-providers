@@ -109,14 +109,15 @@ gulp.task("launch_demo", function() {
 gulp.task("test_integration", function() {
   "use strict";
   // Start Radiatus Providers Server
-  require("./index");
+  var server = require("./src/app");
+  server.start();
 
   // Browserify the integration test
 
   // Run tests on Node.js
 
   // Run tests on Chrome/Firefox
-  return gulp.src([
+  gulp.src([
     require.resolve("freedom"),
     "build/spec-integration.js"
   ]).pipe(karma({
@@ -126,6 +127,8 @@ gulp.task("test_integration", function() {
     throw err; 
   });
 
+  // Tear down Radiatus Providers server
+  server.stop();
 });
 
 gulp.task("build", [ "lint", "copy_provider_manifests", "build_providers" ]);

@@ -25,7 +25,6 @@ var server = http.createServer(app);
 var wss = new WebSocketServer({ server: server });
 var siteHandlers = {};
 charlatan.setLocale('en-us');
-mongoose.connect(config.get('database.mongoURL'));
 mongoose.connection.on('error', function(e) {
   "use strict";
   logger.error('Mongoose error');
@@ -122,4 +121,16 @@ app.get('*', function(req, res) {
   logger.trace('app.get("*"): exit');
 });
 
-module.exports = server;
+module.exports.start = function() {
+  "use strict";
+  var port = config.get("webserver.port");
+  mongoose.connect(config.get('database.mongoURL'));
+  server.listen(port, function() {
+    logger.info("Radiatus Providers Server listening on port " + port);
+  });
+};
+module.exports.stop = function() {
+  "use strict";
+  mongoose.disconnect();
+  server.close();
+};
