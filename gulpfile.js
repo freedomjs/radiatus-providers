@@ -33,40 +33,41 @@ var sourcemaps = require('gulp-sourcemaps');
 var fs = require("fs-extra");
 var path = require("path");
 
-var copyToDist = function(filepath) {
-  var filename = path.basename(filepath);
-  fs.copy(
-    filepath, 
-    "./dist/" + filename, 
-    function(err) { if (err) { throw err; } }
-  );
-}
-
-var browserifyTarget = function(entry) {
-  var filename = path.basename(entry);
-  var bundler = browserify({
-    entries: [ entry ],
-    debug: true
-  });
-  var bundle = function() {
-    return bundler
-      .bundle()
-      .pipe(source(filename))
-      .pipe(buffer())
-      .pipe(sourcemaps.init({ loadMaps: true }))
-      // Add transformation tasks to the pipeline here.
-      .pipe(uglify())
-      .pipe(sourcemaps.write('./'))
-      .pipe(gulp.dest('./dist/'));
-  };
-  return bundle();
-};
-
-gulp.task("build_providers", function() {
+gulp.task("copy_provider_manifests", function() {
+  var copyToDist = function(filepath) {
+    fs.copy(
+      filepath,
+      "./dist/" + path.basename(filepath),
+      function(err) { if (err) { throw err; } }
+    );
+  }
   copyToDist("./src/client/social.radiatus.json");
   copyToDist("./src/client/storage.radiatus.json");
   copyToDist("./src/client/storebuffer.radiatus.json");
   copyToDist("./src/client/transport.radiatus.json");
+});
+
+gulp.task("build_providers", function() {
+  var browserifyTarget = function(entry) {
+    var filename = path.basename(entry);
+    var bundler = browserify({
+      entries: [ entry ],
+      debug: true
+    });
+    var bundle = function() {
+      return bundler
+        .bundle()
+        .pipe(source(filename))
+        .pipe(buffer())
+        .pipe(sourcemaps.init({ loadMaps: true }))
+        // Add transformation tasks to the pipeline here.
+        .pipe(uglify())
+        .pipe(sourcemaps.write('./'))
+        .pipe(gulp.dest('./dist/'));
+    };
+    return bundle();
+  };
+
   browserifyTarget('./src/client/social.radiatus.js');
   browserifyTarget('./src/client/storage.radiatus.js');
   browserifyTarget('./src/client/transport.radiatus.js');
@@ -99,7 +100,7 @@ gulp.task("launch_demo", function() {
   require("./index");
 });
 
-gulp.task("test", function() {
+gulp.task("test_integration", function() {
   // Start Radiatus Providers Server
   //require("./index");
 
@@ -116,6 +117,7 @@ gulp.task("test", function() {
 
 });
 
-gulp.task("build", [ "lint", "build_providers" ]);
+gulp.task("build", [ "lint", "copy_provider_manifests", "build_providers" ]);
+gulp.task("test", [ "test_integration" ]);
 gulp.task("demo", [ "build", "launch_demo" ]);
 gulp.task("default", [ "build", "test" ]);
