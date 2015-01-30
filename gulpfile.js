@@ -23,7 +23,7 @@ var gulp = require("gulp");
 var jshint = require("gulp-jshint");
 var karma = require("gulp-karma");
 var through = require("through");
-var static = require("node-static");
+var nodeStatic = require("node-static");
 var http = require("http");
 var browserify = require("browserify");
 var source = require('vinyl-source-stream');
@@ -34,13 +34,14 @@ var fs = require("fs-extra");
 var path = require("path");
 
 gulp.task("copy_provider_manifests", function() {
+  "use strict";
   var copyToDist = function(filepath) {
     fs.copy(
       filepath,
       "./dist/" + path.basename(filepath),
       function(err) { if (err) { throw err; } }
     );
-  }
+  };
   copyToDist("./src/client/social.radiatus.json");
   copyToDist("./src/client/storage.radiatus.json");
   copyToDist("./src/client/storebuffer.radiatus.json");
@@ -48,6 +49,7 @@ gulp.task("copy_provider_manifests", function() {
 });
 
 gulp.task("build_providers", function() {
+  "use strict";
   var browserifyTarget = function(entry) {
     var filename = path.basename(entry);
     var bundler = browserify({
@@ -75,7 +77,10 @@ gulp.task("build_providers", function() {
 });
 
 gulp.task("lint", function() {
+  "use strict";
   return gulp.src([
+      "*.js",
+      "*.json",
       "src/**/*.js",
       "demo/**/*.js"
     ]).pipe(jshint({ lookup: true }))
@@ -83,7 +88,8 @@ gulp.task("lint", function() {
 });
 
 gulp.task("launch_demo", function() {
-  var fileserver = new static.Server("./");
+  "use strict";
+  var fileserver = new nodeStatic.Server("./");
   // Serve static files from demo/
   require("http").createServer(function(req, res) {
     req.addListener("end", function() {
@@ -101,6 +107,7 @@ gulp.task("launch_demo", function() {
 });
 
 gulp.task("test_integration", function() {
+  "use strict";
   // Start Radiatus Providers Server
   //require("./index");
 

@@ -24,11 +24,12 @@ var fileInfo = require('freedom');
 var freedomPrefix = require.resolve('freedom').substr(0,
   require.resolve('freedom').lastIndexOf('freedom') + 8);
 var addPrefix = function(file) {
+  "use strict";
   if (file.indexOf('!') !== 0 && file.indexOf('/') !== 0) {
     return freedomPrefix + file;
   }
-  return file
-}
+  return file;
+};
 var FILES = {
   src: [
     'app.js',
@@ -55,6 +56,7 @@ FILES.karma.include = FILES.karma.include.concat(
 console.log(FILES);
 
 module.exports = function(grunt) {
+  "use strict";
   grunt.initConfig({
     karma: {
       options: { configFile: 'karma.conf.js' },
