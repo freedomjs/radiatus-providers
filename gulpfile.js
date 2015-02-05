@@ -28,10 +28,12 @@ var through = require("through");
 var nodeStatic = require("node-static");
 var http = require("http");
 var browserify = require("browserify");
-var source = require('vinyl-source-stream');
-var buffer = require('vinyl-buffer');
-var uglify = require('gulp-uglify');
-var sourcemaps = require('gulp-sourcemaps');
+var source = require("vinyl-source-stream");
+var buffer = require("vinyl-buffer");
+var transform = require("vinyl-transform");
+var uglify = require("gulp-uglify");
+var sourcemaps = require("gulp-sourcemaps");
+var server = require("./src/app");
 
 gulp.task("copy_provider_manifests", function() {
   "use strict";
@@ -64,15 +66,15 @@ gulp.task("build_providers", function() {
         .pipe(sourcemaps.init({ loadMaps: true }))
         // Add transformation tasks to the pipeline here.
         .pipe(uglify())
-        .pipe(sourcemaps.write('./'))
-        .pipe(gulp.dest('./dist/'));
+        .pipe(sourcemaps.write("./"))
+        .pipe(gulp.dest("./dist/"));
     };
     return bundle();
   };
 
-  browserifyTarget('./src/client/social.radiatus.js');
-  browserifyTarget('./src/client/storage.radiatus.js');
-  browserifyTarget('./src/client/transport.radiatus.js');
+  browserifyTarget("./src/client/social.radiatus.js");
+  browserifyTarget("./src/client/storage.radiatus.js");
+  browserifyTarget("./src/client/transport.radiatus.js");
   return;
 });
 
@@ -106,32 +108,46 @@ gulp.task("launch_demo", function() {
   require("./index");
 });
 
-gulp.task("test_integration", function() {
+gulp.task("build_integration", function() {
   "use strict";
-  // Start Radiatus Providers Server
-  var server = require("./src/app");
-  server.start();
-
   // Browserify the integration test
-
-  // Run tests on Node.js
-
-  // Run tests on Chrome/Firefox
-  gulp.src([
-    require.resolve("freedom"),
-    "build/spec-integration.js"
-  ]).pipe(karma({
-    configFile: 'karma.conf.js',
-    action: 'run'
-  })).on('error', function(err) { 
-    throw err; 
+  var browserified = transform(function(filename) {
+    var b = browserify(filename);
+    return b.bundle();
   });
+  return gulp.src([ "spec/integration.spec.js" ])
+    .pipe(browserified)
+    .pipe(gulp.dest("./build/"));
+});
 
-  // Tear down Radiatus Providers server
+gulp.task("start_server", function() {
+  "use strict";
+  server.start();
+});
+
+gulp.task("stop_server", function() {
+  "use strict";
   server.stop();
 });
 
+gulp.task("karma_integration", function() {
+  "use strict";
+  // Run tests on Node.js
+  return gulp.src([
+    require.resolve("freedom"),
+    "build/integration.spec.js"
+  ]).pipe(karma({
+    configFile: "karma.conf.js",
+    action: "run"
+  })).on("error", function(err) { 
+    throw err; 
+  });
+});
+
+gulp.task("node_integration", function() {
+});
+
 gulp.task("build", [ "lint", "copy_provider_manifests", "build_providers" ]);
-gulp.task("test", [ "test_integration" ]);
+gulp.task("test", [ "build_integration", "start_server", "karma_integration", "node_integration", "stop_server" ]);
 gulp.task("demo", [ "build", "launch_demo" ]);
 gulp.task("default", [ "build", "test" ]);
