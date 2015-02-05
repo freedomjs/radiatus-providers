@@ -11,7 +11,7 @@ module.exports = function(config) {
 
     // web server port
     port: 9876,
-    //proxies:  { '/': 'http://localhost:8000/' },
+    proxies:  { '/dist/': 'http://localhost:8000/dist/' },
 
     // enable / disable colors in the output (reporters and logs)
     colors: true,

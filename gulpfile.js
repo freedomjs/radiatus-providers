@@ -35,7 +35,7 @@ var uglify = require("gulp-uglify");
 var sourcemaps = require("gulp-sourcemaps");
 var server = require("./src/app");
 
-gulp.task("copy_provider_manifests", function() {
+gulp.task("copy_manifests", function() {
   "use strict";
   var copyToDist = function(filepath) {
     fs.copy(
@@ -89,7 +89,7 @@ gulp.task("lint", function() {
     .pipe(jshint.reporter("default"));
 });
 
-gulp.task("launch_demo", function() {
+gulp.task("serve_local", function() {
   "use strict";
   var fileserver = new nodeStatic.Server("./");
   // Serve static files from demo/
@@ -104,8 +104,6 @@ gulp.task("launch_demo", function() {
       }
     }).resume();
   }).listen(8000);
-  // Start Radiatus Providers Server
-  require("./index");
 });
 
 gulp.task("build_integration", function() {
@@ -130,9 +128,11 @@ gulp.task("stop_server", function() {
   server.stop();
 });
 
-gulp.task("karma_integration", function() {
+gulp.task("karma_integration", [
+  "build_integration",
+  "serve_local"
+], function() {
   "use strict";
-  // Run tests on Node.js
   return gulp.src([
     require.resolve("freedom"),
     "build/integration.spec.js"
@@ -145,9 +145,10 @@ gulp.task("karma_integration", function() {
 });
 
 gulp.task("node_integration", function() {
+  //@todo
 });
 
-gulp.task("build", [ "lint", "copy_provider_manifests", "build_providers" ]);
-gulp.task("test", [ "build_integration", "start_server", "karma_integration", "node_integration", "stop_server" ]);
-gulp.task("demo", [ "build", "launch_demo" ]);
+gulp.task("build", [ "lint", "copy_manifests", "build_providers" ]);
+gulp.task("test", [ "start_server", "karma_integration", "node_integration", "stop_server" ]);
+gulp.task("demo", [ "build", "start_server", "serve_local" ]);
 gulp.task("default", [ "build", "test" ]);
