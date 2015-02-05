@@ -128,27 +128,35 @@ gulp.task("stop_server", function() {
   server.stop();
 });
 
-gulp.task("karma_integration", [
-  "build_integration",
-  "serve_local"
-], function() {
+var karma_task = function(action) {
   "use strict";
   return gulp.src([
     require.resolve("freedom"),
     "build/integration.spec.js"
   ]).pipe(karma({
     configFile: "karma.conf.js",
-    action: "run"
+    action: action
   })).on("error", function(err) { 
     throw err; 
   });
-});
+};
+
+gulp.task("karma_integration", [
+  "build_integration",
+  "serve_local"
+], karma_task.bind(this, "run"));
+
+gulp.task("karma_watch_integration", [
+  "build_integration",
+  "serve_local"
+], karma_task.bind(this, "watch"));
 
 gulp.task("node_integration", function() {
   //@todo
 });
 
 gulp.task("build", [ "lint", "copy_manifests", "build_providers" ]);
-gulp.task("test", [ "start_server", "karma_integration", "node_integration", "stop_server" ]);
+gulp.task("test", [ "start_server", "karma_integration", "node_integration" ]);
+gulp.task("debug", [ "start_server", "karma_watch_integration" ]);
 gulp.task("demo", [ "build", "start_server", "serve_local" ]);
 gulp.task("default", [ "build", "test" ]);
