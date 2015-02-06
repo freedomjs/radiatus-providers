@@ -44,7 +44,8 @@
     "vinyl-buffer": "~1.0.0",
     "vinyl-source-stream": "~1.0.0",
     "vinyl-transform": "^1.0.0",
-    "run-sequence": "^1.0.2"
+    "run-sequence": "^1.0.2",
+    "gulp-jasmine": "^2.0.0"
   },
   "dependencies": {
     "charlatan": "^0.1.9",

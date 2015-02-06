@@ -17,7 +17,10 @@
  *    and reruns tests on watched file changes.
  *  - Used to debug unit tests
  **/
-process.env.NODE_ENV = "test";
+if (!process.env.NODE_ENV) {
+  // Default to test mode
+  process.env.NODE_ENV = "test";
+}
 
 var gulp = require("gulp");
 var jshint = require("gulp-jshint");
@@ -35,6 +38,7 @@ var uglify = require("gulp-uglify");
 var sourcemaps = require("gulp-sourcemaps");
 var runSequence = require("run-sequence");
 var http = require("http");
+var jasmine = require("gulp-jasmine");
 var radiatusServer = require("./src/app");
 var httpServer = null;
 
@@ -89,7 +93,8 @@ gulp.task("lint", function() {
       "src/**/*.js",
       "demo/**/*.js"
     ]).pipe(jshint({ lookup: true }))
-    .pipe(jshint.reporter("default"));
+    .pipe(jshint.reporter("default"))
+    .pipe(jshint.reporter("fail"));
 });
 
 gulp.task("build_integration", function() {
@@ -121,6 +126,9 @@ gulp.task("start_server", function() {
       }
     }).resume();
   });
+  httpServer.on("close", function() {
+    // console.log("Static HTTP Server closed");
+  });
   httpServer.listen(8000);
 });
 
@@ -147,14 +155,26 @@ var karma_task = function(action) {
 gulp.task("karma_integration", [ "prep_integration" ], karma_task.bind(this, "run"));
 gulp.task("karma_watch_integration", [ "prep_integration" ], karma_task.bind(this, "watch"));
 gulp.task("node_integration", [ "prep_integration" ], function() {
-  //@todo
+  "use strict";
+  return gulp.src("spec/integration.spec.js").pipe(jasmine({
+    verbose: true
+  }));
 });
 
 gulp.task("build", [ "lint", "copy_manifests", "build_providers" ]);
-gulp.task("prep_integration", [ "build", "build_integration", "start_server" ])
+gulp.task("prep_integration", [ "build", "build_integration", "start_server" ]);
 gulp.task("test", function() {
+  "use strict";
   runSequence([ "karma_integration", "node_integration" ], "stop_server" );
 });
 gulp.task("debug", [ "start_server", "karma_watch_integration" ]);
 gulp.task("demo", [ "build", "start_server" ]);
 gulp.task("default", [ "test" ]);
+
+gulp.on("stop", function() {
+  "use strict";
+  // Process not exiting after successful test
+  process.nextTick(function() {
+    process.exit(0);
+  });
+});
