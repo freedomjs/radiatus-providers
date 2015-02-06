@@ -43,7 +43,8 @@
     "node-static": "~0.7.6",
     "vinyl-buffer": "~1.0.0",
     "vinyl-source-stream": "~1.0.0",
-    "vinyl-transform": "^1.0.0"
+    "vinyl-transform": "^1.0.0",
+    "run-sequence": "^1.0.2"
   },
   "dependencies": {
     "charlatan": "^0.1.9",

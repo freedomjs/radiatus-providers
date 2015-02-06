@@ -33,7 +33,10 @@ var buffer = require("vinyl-buffer");
 var transform = require("vinyl-transform");
 var uglify = require("gulp-uglify");
 var sourcemaps = require("gulp-sourcemaps");
-var server = require("./src/app");
+var runSequence = require("run-sequence");
+var http = require("http");
+var radiatusServer = require("./src/app");
+var httpServer = null;
 
 gulp.task("copy_manifests", function() {
   "use strict";
@@ -89,23 +92,6 @@ gulp.task("lint", function() {
     .pipe(jshint.reporter("default"));
 });
 
-gulp.task("serve_local", function() {
-  "use strict";
-  var fileserver = new nodeStatic.Server("./");
-  // Serve static files from demo/
-  require("http").createServer(function(req, res) {
-    req.addListener("end", function() {
-      if (req.url === "/") {
-        res.statusCode = "302";
-        res.setHeader("Location", "/demo/index.html");
-        res.end();
-      } else {
-        fileserver.serve(req, res);
-      }
-    }).resume();
-  }).listen(8000);
-});
-
 gulp.task("build_integration", function() {
   "use strict";
   // Browserify the integration test
@@ -120,12 +106,30 @@ gulp.task("build_integration", function() {
 
 gulp.task("start_server", function() {
   "use strict";
-  server.start();
+  // Start Radiatus Server
+  radiatusServer.start();
+  // Serve static files from demo/
+  var fileserver = new nodeStatic.Server("./");
+  httpServer = http.createServer(function(req, res) {
+    req.addListener("end", function() {
+      if (req.url === "/") {
+        res.statusCode = "302";
+        res.setHeader("Location", "/demo/index.html");
+        res.end();
+      } else {
+        fileserver.serve(req, res);
+      }
+    }).resume();
+  });
+  httpServer.listen(8000);
 });
 
 gulp.task("stop_server", function() {
   "use strict";
-  server.stop();
+  // Stop Radiatus server
+  radiatusServer.stop();
+  // Stop static server
+  httpServer.close();
 });
 
 var karma_task = function(action) {
@@ -142,21 +146,31 @@ var karma_task = function(action) {
 };
 
 gulp.task("karma_integration", [
+  "build",
   "build_integration",
-  "serve_local"
+  "start_server"
 ], karma_task.bind(this, "run"));
 
 gulp.task("karma_watch_integration", [
+  "build",
   "build_integration",
-  "serve_local"
+  "start_server"
 ], karma_task.bind(this, "watch"));
 
-gulp.task("node_integration", function() {
+gulp.task("node_integration", [
+  "build",
+  "build_integration",
+  "start_server"
+], function() {
   //@todo
 });
 
 gulp.task("build", [ "lint", "copy_manifests", "build_providers" ]);
-gulp.task("test", [ "start_server", "karma_integration", "node_integration" ]);
+gulp.task("test", function() {
+  runSequence(
+    [ "karma_integration", "node_integration" ], 
+    "stop_server" );
+});
 gulp.task("debug", [ "start_server", "karma_watch_integration" ]);
-gulp.task("demo", [ "build", "start_server", "serve_local" ]);
-gulp.task("default", [ "build", "test" ]);
+gulp.task("demo", [ "build", "start_server" ]);
+gulp.task("default", [ "test" ]);
