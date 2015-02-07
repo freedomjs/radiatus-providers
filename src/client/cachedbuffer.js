@@ -1,15 +1,18 @@
-/*globals SparkMD5 */
-/*jslint indent:2, white:true, node:true, sloppy:true, browser:true */
+/*jslint node:true, browser:true */
+/*global FileReaderSync */
 /**
  * Keeps track of ArrayBuffers across calls to the
  * storage/transport interfaces.
  **/
 
+var SparkMD5 = require("spark-md5");
+
 var D;
 function CachedBuffer() {
+  "use strict";
   this.cache = {};    // H(buffer) -> { ids: [], buffer: ArrayBuffer}
   
-  if (typeof SparkMD5 == 'undefined') {
+  if (typeof SparkMD5 === 'undefined') {
     console.error("CachedBuffer: Missing SparkMD5");
   }
 }
@@ -18,7 +21,8 @@ function CachedBuffer() {
  * Clears the cache. Mostly used in testing
  **/
 CachedBuffer.prototype.clear = function() {
-  if (D) console.log('CachedBuffer.clear: enter');
+  "use strict";
+  if (D) { console.log('CachedBuffer.clear: enter'); }
   this.cache = {};
 };
 
@@ -29,8 +33,9 @@ CachedBuffer.prototype.clear = function() {
  *  of FileReader
  **/ 
 CachedBuffer.prototype.addBlob = function(blob, id) {
+  "use strict";
   var fr;
-  if (D) console.log('CachedBuffer.addBlob: converting Blob to ArrayBuffer');
+  if (D) { console.log('CachedBuffer.addBlob: converting Blob to ArrayBuffer'); }
   if (typeof FileReaderSync !== 'undefined') {
     fr = new FileReaderSync();
     this.cachedBuffer.add(fr.readAsArrayBuffer(blob), id);
@@ -50,12 +55,13 @@ CachedBuffer.prototype.addBlob = function(blob, id) {
  * If an id is passed in, it's added to a ref counter
  **/
 CachedBuffer.prototype.add = function(buffer, id) {
-  if (D) console.log('CachedBuffer.add: enter, id='+id);
+  "use strict";
+  if (D) { console.log('CachedBuffer.add: enter, id='+id); }
   
   var spark = new SparkMD5.ArrayBuffer();
   spark.append(buffer);
   var hash = spark.end();
-  if (D) console.log('CachedBuffer.add: hash='+hash);
+  if (D) { console.log('CachedBuffer.add: hash='+hash); }
   if(!this.cache.hasOwnProperty(hash)) {
     this.cache[hash] = {
       ids: [],            // List of request id's that need this
@@ -68,7 +74,7 @@ CachedBuffer.prototype.add = function(buffer, id) {
   } else {
     this.cache[hash].otherRefCount += 1;
   }
-  if (D) console.log('CachedBuffer.add: references='+JSON.stringify(this.cache[hash].ids));
+  if (D) { console.log('CachedBuffer.add: references='+JSON.stringify(this.cache[hash].ids)); }
   return hash;
 };
 
@@ -78,7 +84,8 @@ CachedBuffer.prototype.add = function(buffer, id) {
  *  and no refs are left, the buffer is purged from memory
  **/
 CachedBuffer.prototype.retrieve = function(hash, id) {
-  if (D) console.log('CachedBuffer.retrieve: hash='+hash+',id='+id);
+  "use strict";
+  if (D) { console.log('CachedBuffer.retrieve: hash='+hash+',id='+id); }
   var retValue;
   if (!this.cache.hasOwnProperty(hash)) {
     console.error("CachedBuffer.retrieve: no content with hash "+hash);
@@ -98,10 +105,12 @@ CachedBuffer.prototype.retrieve = function(hash, id) {
   // If ref count is 0, remove from cache
   if (this.cache[hash].ids.length <= 0 &&
       this.cache[hash].otherRefCount <= 0) {
-    if (D) console.log('CachedBuffer.retrieve: deleting item');
+    if (D) { console.log('CachedBuffer.retrieve: deleting item'); }
     delete this.cache[hash];
   }
 
-  if (D) console.log('CachedBuffer.retrieve: returning '+hash);
+  if (D) { console.log('CachedBuffer.retrieve: returning '+hash); }
   return retValue;
 };
+
+module.exports = CachedBuffer;

@@ -1,16 +1,18 @@
-/*globals freedom:true, WebSocket, DEBUG */
-/*jslint indent:2, white:true, node:true, sloppy:true, browser:true */
+/*globals freedom:true, DEBUG */
+/*jslint node:true, browser:true */
 
 /**
  * Implementation of the Transport provider that communicates with
  * a radiatus-providers server
  **/
 var DEBUGLOGGING = false;
+var CachedBuffer = require("./cachedbuffer");
 
 function RadiatusTransportProvider(dispatchEvent, webSocket) {
+  "use strict";
   this.dispatchEvent = dispatchEvent;
   this.websocket = freedom["core.websocket"] || webSocket;
-  this.ERRCODE = freedom.transport().ERRCODE;
+  this.ERRCODE = freedom().ERRCODE;
 
   this.name = null;
   this.conn = null;
@@ -34,6 +36,7 @@ function RadiatusTransportProvider(dispatchEvent, webSocket) {
 }
 
 RadiatusTransportProvider.prototype.TRACE = function(method, msg) {
+  "use strict";
   if (DEBUGLOGGING) {
     console.log(
       'RadiatusTransportProvider.' + 
@@ -44,6 +47,7 @@ RadiatusTransportProvider.prototype.TRACE = function(method, msg) {
   }
 };
 RadiatusTransportProvider.prototype.ERROR = function(method, msg, err) {
+  "use strict";
   var toPrint = 'RadiatusTransportProvider.'+this.name+'.'+method+':';
   toPrint += msg;
   if (err && err.message) {
@@ -51,11 +55,12 @@ RadiatusTransportProvider.prototype.ERROR = function(method, msg, err) {
   }
   console.error(toPrint);
   //console.trace();
-  if (err) console.error(err);
+  if (err) { console.error(err); }
 };
 
 /** INTERFACE **/
 RadiatusTransportProvider.prototype.setup = function(name, channelId, continuation) {
+  "use strict";
   this.TRACE('setup', 'enter');
   this.isInitializing = true;
   this.name = name;
@@ -100,6 +105,7 @@ RadiatusTransportProvider.prototype.setup = function(name, channelId, continuati
 };
 
 RadiatusTransportProvider.prototype.send = function(tag, data, continuation) {
+  "use strict";
   this.TRACE('send', 'tag='+tag);
   if (this.conn === null) {
     continuation(undefined, this._createError('OFFLINE'));
@@ -126,6 +132,7 @@ RadiatusTransportProvider.prototype.send = function(tag, data, continuation) {
 };
 
 RadiatusTransportProvider.prototype.close = function(continuation) {
+  "use strict";
   this.TRACE('close', 'enter');
   // https://developer.mozilla.org/en-US/docs/Web/API/WebSocket#close%28%29
   this.conn.close(1000, "Close called").then(continuation);
@@ -138,7 +145,8 @@ RadiatusTransportProvider.prototype.close = function(continuation) {
 /** INTERNAL **/
 
 RadiatusTransportProvider.prototype._createError = function(code) {
-  if (typeof code == 'undefined') { return undefined; }
+  "use strict";
+  if (typeof code === 'undefined') { return undefined; }
   var err = {
     errcode: code,
     message: this.ERRCODE[code]
@@ -147,10 +155,11 @@ RadiatusTransportProvider.prototype._createError = function(code) {
 };
 
 RadiatusTransportProvider.prototype._onPeerMessage = function(msg) {
+  "use strict";
   this.TRACE('_onPeerMessage', msg);
   try {
     var parsedMsg = JSON.parse(msg);
-    if (parsedMsg.cmd == 'ready') {
+    if (parsedMsg.cmd === 'ready') {
       //Ignore for now
       this.TRACE('_onPeerMessage', 'ready');
     // If my own send request, then treat this as an ACK
@@ -176,6 +185,7 @@ RadiatusTransportProvider.prototype._onPeerMessage = function(msg) {
 };
 
 RadiatusTransportProvider.prototype._onServerMessage = function(finishSetup, msg) {
+  "use strict";
   this.TRACE('_onServerMessage', JSON.stringify(msg));
   // Cache binary objects
   if (msg.buffer) {
@@ -192,7 +202,7 @@ RadiatusTransportProvider.prototype._onServerMessage = function(finishSetup, msg
   try {
     var parsedMsg = JSON.parse(msg.text);
     var id = parsedMsg.id;
-    if (parsedMsg.cmd == 'ready') {
+    if (parsedMsg.cmd === 'ready') {
       this.TRACE('_onServerMessage', 'ready');
       this.isInitializing = false;
       // Call the setup() continuation
@@ -208,11 +218,11 @@ RadiatusTransportProvider.prototype._onServerMessage = function(finishSetup, msg
       this.liveRequests[id].continuation(undefined, this._createError(parsedMsg.err));
       delete this.liveRequests[id];
     // Successfully stored buffer on server. Now inform peer
-    } else if (parsedMsg.cmd == 'send' && parsedMsg.bufferSetDone === true) {
+    } else if (parsedMsg.cmd === 'send' && parsedMsg.bufferSetDone === true) {
       this.TRACE('_onServerMessage', 'buffer is cached on server, tell peer to D/L');
       this.peerChannel.send(JSON.stringify(this.liveRequests[id]));
     // The server needs us to send the buffer
-    } else if (parsedMsg.cmd == 'send' && parsedMsg.needBufferFromClient === true) {
+    } else if (parsedMsg.cmd === 'send' && parsedMsg.needBufferFromClient === true) {
       this.TRACE('_onServerMessage', 'sending buffer to server '+parsedMsg.hash);
       var buf = this.cachedBuffer.retrieve(parsedMsg.hash, parsedMsg.id);
       if (buf !== null) {
@@ -237,8 +247,7 @@ RadiatusTransportProvider.prototype._onServerMessage = function(finishSetup, msg
 };
 
 /** REGISTER PROVIDER **/
-if (typeof freedom !== 'undefined' &&
-    typeof freedom.transport !== 'undefined') {
-  freedom.transport().provideAsynchronous(RadiatusTransportProvider);
+if (typeof freedom !== 'undefined') {
+  freedom().provideAsynchronous(RadiatusTransportProvider);
 }
 

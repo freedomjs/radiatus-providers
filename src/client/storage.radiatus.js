@@ -1,16 +1,19 @@
-/*globals freedom:true, WebSocket, DEBUG */
-/*jslint indent:2, white:true, node:true, sloppy:true, browser:true */
+/*globals freedom:true, DEBUG */
+/*jslint node:true, browser:true */
 
 /**
  * Implementation of the Storage provider that communicates with
  * a radiatus-providers server
  **/
 var DEBUGLOGGING = false;
+var CachedBuffer = require("./cachedbuffer");
 
 function RadiatusStorageProvider(dispatchEvent, webSocket) {
+  "use strict";
   this.dispatchEvent = dispatchEvent;
   this.cachedBuffer = new CachedBuffer();
   this.websocket = freedom["core.websocket"] || webSocket;
+  //@todo Need to replace this
   if (typeof freedom.storage !== 'undefined') {
     this.ERRCODE = freedom.storage().ERRCODE;
     this.valueIsHash = false;
@@ -36,6 +39,7 @@ function RadiatusStorageProvider(dispatchEvent, webSocket) {
 }
 
 RadiatusStorageProvider.prototype.TRACE = function(method, msg) {
+  "use strict";
   if (DEBUGLOGGING) {
     console.log(
       'RadiatusStorageProvider.' + 
@@ -46,6 +50,7 @@ RadiatusStorageProvider.prototype.TRACE = function(method, msg) {
   }
 };
 RadiatusStorageProvider.prototype.ERROR = function(method, msg, err) {
+  "use strict";
   var toPrint = 'RadiatusStorageProvider.'+method+':';
   toPrint += msg;
   if (err && err.message) {
@@ -53,38 +58,44 @@ RadiatusStorageProvider.prototype.ERROR = function(method, msg, err) {
   }
   console.error(toPrint);
   //console.trace();
-  if (err) console.error(err);
+  if (err) { console.error(err); }
 };
 
 
 /** INTERFACE **/
 RadiatusStorageProvider.prototype.keys = function(continuation) {
+  "use strict";
   this.TRACE('keys', 'enter');
   this._createRequest('keys', null, null, continuation);
 };
 
 RadiatusStorageProvider.prototype.get = function(key, continuation) {
+  "use strict";
   this.TRACE('get', 'enter key='+key);
   this._createRequest('get', key, null, continuation);
 };
 
 RadiatusStorageProvider.prototype.set = function(key, value, continuation) {
+  "use strict";
   this.TRACE('set', 'enter key='+key+',value='+value);
   this._createRequest('set', key, value, continuation);
 };
 
 RadiatusStorageProvider.prototype.remove = function(key, continuation) {
+  "use strict";
   this.TRACE('remove', 'enter key='+key);
   this._createRequest('remove', key, null, continuation);
 };
 
 RadiatusStorageProvider.prototype.clear = function(continuation) {
+  "use strict";
   this.TRACE('clear', 'enter');
   this._createRequest('clear', null, null, continuation);
 };
 
 /** INTERNAL **/
 RadiatusStorageProvider.prototype._initialize = function() {
+  "use strict";
   this.TRACE('_initialize', 'enter');
   this.conn = this.websocket(this.WS_URL);
   this.conn.on("onMessage", this._onMessage.bind(this));
@@ -99,6 +110,7 @@ RadiatusStorageProvider.prototype._initialize = function() {
 };
 
 RadiatusStorageProvider.prototype._onMessage = function(msg) {
+  "use strict";
   this.TRACE('_onMessage', JSON.stringify(msg));
 
   // Cache binary objects
@@ -116,7 +128,7 @@ RadiatusStorageProvider.prototype._onMessage = function(msg) {
   try {
     var parsedMsg = JSON.parse(msg.text);
     // On a 'ready' message, let's flush those initial requests
-    if (parsedMsg.method == 'ready') {
+    if (parsedMsg.method === 'ready') {
       this.isInitializing = false;
       while(this.queuedRequests.length > 0) {
         this.conn.send(this.queuedRequests.shift());
@@ -135,13 +147,13 @@ RadiatusStorageProvider.prototype._onMessage = function(msg) {
       this.TRACE(parsedMsg.method, 'returns '+parsedMsg.ret);
       this.liveRequests[id].continuation(parsedMsg.ret);
       delete this.liveRequests[id];
-    } else if (parsedMsg.method == 'keys' || parsedMsg.method == 'clear') {
+    } else if (parsedMsg.method === 'keys' || parsedMsg.method === 'clear') {
       this.TRACE(parsedMsg.method, 'returns ' + parsedMsg.ret);
       this.liveRequests[id].continuation(parsedMsg.ret);
       delete this.liveRequests[id];
     } else if (parsedMsg.needBufferFromClient === true &&
         parsedMsg.bufferSetDone === false &&
-        parsedMsg.method == 'set') {
+        parsedMsg.method === 'set') {
       this.TRACE('_onMessage', 'sending buffer '+parsedMsg.value);
       var buf = this.cachedBuffer.retrieve(parsedMsg.value, parsedMsg.id);
       if (buf !== null) {
@@ -154,7 +166,7 @@ RadiatusStorageProvider.prototype._onMessage = function(msg) {
         this.ERROR('_onMessage', 'missing buffer '+parsedMsg.value);
       }
     } else if (parsedMsg.bufferSetDone === true && 
-        (parsedMsg.method == 'set' || parsedMsg.method == 'get' || parsedMsg.method == 'remove')) {
+        (parsedMsg.method === 'set' || parsedMsg.method === 'get' || parsedMsg.method === 'remove')) {
       this.TRACE(parsedMsg.method, 'returns buffer with hash '+parsedMsg.ret);
       if (parsedMsg.ret === null) {
         this.liveRequests[id].continuation(null); 
@@ -171,6 +183,7 @@ RadiatusStorageProvider.prototype._onMessage = function(msg) {
 };
 
 RadiatusStorageProvider.prototype._createRequest = function(method, key, value, cont) {
+  "use strict";
   //DEBUG just for testing
   if (typeof DEBUG !== 'undefined' && DEBUG) { this.cachedBuffer.clear(); }
   //DEBUG
@@ -208,7 +221,8 @@ RadiatusStorageProvider.prototype._createRequest = function(method, key, value, 
 };
 
 RadiatusStorageProvider.prototype._createError = function(code) {
-  if (typeof code == 'undefined') { return undefined; }
+  "use strict";
+  if (typeof code === 'undefined') { return undefined; }
   var err = {
     errcode: code,
     message: this.ERRCODE[code]
@@ -218,11 +232,6 @@ RadiatusStorageProvider.prototype._createError = function(code) {
 
 
 /** REGISTER PROVIDER **/
-if (typeof freedom !== 'undefined' &&
-    typeof freedom.storage !== 'undefined') {
-  freedom.storage().provideAsynchronous(RadiatusStorageProvider);
-}
-if (typeof freedom !== 'undefined' &&
-    typeof freedom.storebuffer !== 'undefined') {
-  freedom.storebuffer().provideAsynchronous(RadiatusStorageProvider);
+if (typeof freedom !== 'undefined') {
+  freedom().provideAsynchronous(RadiatusStorageProvider);
 }

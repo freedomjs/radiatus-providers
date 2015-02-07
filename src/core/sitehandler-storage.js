@@ -1,7 +1,7 @@
-var Storage = require('./models/storage');
-var CachedBuffer = require('./models/cachedbuffer');
+var Storage = require('../models/storage');
+var CachedBuffer = require('../models/cachedbuffer');
 var ConnectionHandler = require('./connectionhandler');
-var getLogger = require('./lib/logger');
+var getLogger = require('../lib/logger');
 
 /**
  * Site Handler for Storage
@@ -9,6 +9,7 @@ var getLogger = require('./lib/logger');
  *   APIs, so must make check to see if binaries are on the line
  **/
 function StorageSiteHandler(appid) {
+  "use strict";
   this.appid = appid;
   this.logger = getLogger(appid);
   this.clients = {};      //Store active clients
@@ -19,6 +20,7 @@ function StorageSiteHandler(appid) {
  * Set the appropriate listeners on the WebSocket
  **/
 StorageSiteHandler.prototype.addConnection = function(username, ws) {
+  "use strict";
   this.logger.debug(username+'.addConnection: enter');
 
   // Store new client
@@ -45,6 +47,7 @@ StorageSiteHandler.prototype.addConnection = function(username, ws) {
  * Handler for incoming message on a WebSocket connection
  **/
 StorageSiteHandler.prototype._onMessage = function(connHandler, msg, flags) {
+  "use strict";
   this.logger.trace(connHandler.id()+'._onMessage: enter');
   
   // Reroute binary messages
@@ -74,6 +77,7 @@ StorageSiteHandler.prototype._onMessage = function(connHandler, msg, flags) {
 /** METHOD HANDLERS **/
 
 StorageSiteHandler.prototype.keys = function(connHandler, req) {
+  "use strict";
   this.logger.trace(connHandler.id()+'._handlers.keys: enter');
   Storage.find({ username: connHandler.username}, 'key').exec().then(function(connHandler, req, docs) {
     var retValue = [];
@@ -90,6 +94,7 @@ StorageSiteHandler.prototype.keys = function(connHandler, req) {
 };
 
 StorageSiteHandler.prototype.get = function(connHandler, req) {
+  "use strict";
   this.logger.trace(connHandler.id()+'._handlers.get: enter');
   Storage.findOneAndUpdate(
     { username: connHandler.username, key: req.key }, 
@@ -112,7 +117,7 @@ StorageSiteHandler.prototype.get = function(connHandler, req) {
       ).exec();
     }
   }.bind(this, connHandler, req)).then(function(connHandler, req, doc) {
-    if (doc == 'DONE') { return 'DONE'; }
+    if (doc === 'DONE') { return 'DONE'; }
     var retValue = null;
     if (doc !== null) { 
       req.ret = doc.key;
@@ -131,6 +136,7 @@ StorageSiteHandler.prototype.get = function(connHandler, req) {
 };
 
 StorageSiteHandler.prototype.set = function(connHandler, req) {
+  "use strict";
   this.logger.trace(connHandler.id()+'._handlers.set: enter');
   Storage.findOneAndUpdate(
     { username: connHandler.username, key: req.key }, 
@@ -162,7 +168,7 @@ StorageSiteHandler.prototype.set = function(connHandler, req) {
       ).exec();
     }
   }.bind(this, connHandler, req)).then(function(connHandler, req, doc) {
-    if (doc == 'DONE') { return 'DONE'; } 
+    if (doc === 'DONE') { return 'DONE'; } 
     if (doc) {  // We have it already!
       this.logger.debug(connHandler.id()+'._handlers.set: already have buffer');
       req.needBufferFromClient = false;
@@ -193,7 +199,7 @@ StorageSiteHandler.prototype.set = function(connHandler, req) {
       ).exec();
     }
   }.bind(this, connHandler, req)).then(function(connHandler, req, doc) {
-    if (doc == 'DONE') { return 'DONE'; } 
+    if (doc === 'DONE') { return 'DONE'; } 
     this.logger.debug(connHandler.id()+'._handlers.set: returning old buffer');
     var retValue = null;
     if (doc !== null) { retValue = doc.value; }
@@ -206,6 +212,7 @@ StorageSiteHandler.prototype.set = function(connHandler, req) {
 };
 
 StorageSiteHandler.prototype.remove = function(connHandler, req) {
+  "use strict";
   this.logger.trace(connHandler.id()+'._handlers.remove: enter');
   Storage.findOneAndRemove(
     { username: connHandler.username, key: req.key }
@@ -227,7 +234,7 @@ StorageSiteHandler.prototype.remove = function(connHandler, req) {
       ).exec();
     }
   }.bind(this, connHandler, req)).then(function(connHandler, req, doc) {
-    if (doc == 'DONE') { return 'DONE'; }
+    if (doc === 'DONE') { return 'DONE'; }
     var retValue = null;
     if (doc !== null) { 
       req.ret = doc.key;
@@ -243,6 +250,7 @@ StorageSiteHandler.prototype.remove = function(connHandler, req) {
 };
 
 StorageSiteHandler.prototype.clear = function(connHandler, req) {
+  "use strict";
   this.logger.trace(connHandler.id()+'._handlers.clear: enter');
   Storage.remove(
     { username: connHandler.username }
@@ -258,6 +266,7 @@ StorageSiteHandler.prototype.clear = function(connHandler, req) {
  * Handler for when promises from mongoose calls are rejected
  **/
 StorageSiteHandler.prototype._onError = function(connHandler, req, err) {
+  "use strict";
   this.logger.error(connHandler.id()+'._onError: mongoose error='+err.message);
   req.err = "UNKNOWN";
   connHandler.websocket.send(JSON.stringify(req));
@@ -267,6 +276,7 @@ StorageSiteHandler.prototype._onError = function(connHandler, req, err) {
  * Handler for 'close' event from a WebSocket
  **/
 StorageSiteHandler.prototype._onClose = function(connHandler) {
+  "use strict";
   this.logger.debug(connHandler.id()+'._onClose: closed connection');
   this.clients[connHandler.username] = this.clients[connHandler.username].filter(function(connHandler, elt) {
     return connHandler !== elt;

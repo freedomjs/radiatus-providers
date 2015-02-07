@@ -1,5 +1,5 @@
-/*globals freedom:true, WebSocket, DEBUG */
-/*jslint indent:2, white:true, node:true, sloppy:true, browser:true */
+/*globals freedom:true, DEBUG */
+/*jslint node:true, browser:true */
 
 /**
  * Implementation of a Social provider that depends on
@@ -18,6 +18,7 @@
 var DEBUGLOGGING = false;
 
 function RadiatusSocialProvider(dispatchEvent, webSocket) {
+  "use strict";
   this.dispatchEvent = dispatchEvent;
 
   this.websocket = freedom["core.websocket"] || webSocket;
@@ -30,7 +31,7 @@ function RadiatusSocialProvider(dispatchEvent, webSocket) {
     this.WS_URL = 'ws://localhost:8082/route/';
     this.WS_QUERYSTR = '?freedomAPI=social';
   }
-  this.social= freedom.social();
+  this.social= freedom();
 
   this.conn = null;     // Web Socket
   this.userId = null;   // userId of this user
@@ -43,6 +44,7 @@ function RadiatusSocialProvider(dispatchEvent, webSocket) {
 }
 
 RadiatusSocialProvider.prototype.TRACE = function(method, msg) {
+  "use strict";
   if (DEBUGLOGGING) {
     console.log(
       'RadiatusSocialProvider.' + 
@@ -53,6 +55,7 @@ RadiatusSocialProvider.prototype.TRACE = function(method, msg) {
   }
 };
 RadiatusSocialProvider.prototype.ERROR = function(method, msg, err) {
+  "use strict";
   var toPrint = 'RadiatusSocialProvider.'+method+':';
   toPrint += msg;
   if (err && err.message) {
@@ -60,7 +63,7 @@ RadiatusSocialProvider.prototype.ERROR = function(method, msg, err) {
   }
   console.error(toPrint);
   //console.trace();
-  if (err) console.error(err);
+  if (err) { console.error(err); }
 };
 
 
@@ -74,6 +77,7 @@ RadiatusSocialProvider.prototype.ERROR = function(method, msg, err) {
  * @return {Object} status - Same schema as 'onStatus' events
  **/
 RadiatusSocialProvider.prototype.login = function(loginOpts, continuation) {
+  "use strict";
   this.TRACE('login', JSON.stringify(loginOpts));
   // Wrap the continuation so that it will only be called once by
   // onmessage in the case of success.
@@ -133,6 +137,7 @@ RadiatusSocialProvider.prototype.login = function(loginOpts, continuation) {
  *   On failure, rejects with an error code (see above)
  **/
 RadiatusSocialProvider.prototype.getUsers = function(continuation) {
+  "use strict";
   this.TRACE('getUsers', 'enter');
   if (this.conn === null) {
     this.ERROR('getUsers', 'returns error OFFLINE');
@@ -159,6 +164,7 @@ RadiatusSocialProvider.prototype.getUsers = function(continuation) {
  *   On failure, rejects with an error code (see above)
  **/
 RadiatusSocialProvider.prototype.getClients = function(continuation) {
+  "use strict";
   this.TRACE('getClients', 'enter');
   if (this.conn === null) {
     this.ERROR('getClients', 'returns error OFFLINE');
@@ -180,6 +186,7 @@ RadiatusSocialProvider.prototype.getClients = function(continuation) {
  * @return nothing
  **/
 RadiatusSocialProvider.prototype.sendMessage = function(to, msg, continuation) {
+  "use strict";
   this.TRACE('sendMessage', 'to='+to+',msg='+msg);
   if (this.conn === null) {
     this.ERROR('sendMessage', 'returns error OFFLINE');
@@ -205,6 +212,7 @@ RadiatusSocialProvider.prototype.sendMessage = function(to, msg, continuation) {
    * @return {Object} status - same schema as 'onStatus' events
    **/
 RadiatusSocialProvider.prototype.logout = function(continuation) {
+  "use strict";
   this.TRACE('logout', 'enter');
   if (this.conn === null) { // We may not have been logged in
     this.ERROR('logout', 'returns error OFFLINE');
@@ -239,6 +247,7 @@ RadiatusSocialProvider.prototype.logout = function(continuation) {
  * @return {Object} - same schema as 'onStatus' event
  **/
 RadiatusSocialProvider.prototype.changeRoster = function(id, stat) {
+  "use strict";
   this.TRACE('changeRoster', 'id='+id+',stat='+stat);
   var newStatus, result = {
     userId: id,
@@ -288,6 +297,7 @@ RadiatusSocialProvider.prototype.changeRoster = function(id, stat) {
  * @return nothing
  **/
 RadiatusSocialProvider.prototype.onMessage = function(finishLogin, msg) {
+  "use strict";
   this.TRACE('onMessage', JSON.stringify(msg));
   try {
     msg = JSON.parse(msg.text);
@@ -324,6 +334,7 @@ RadiatusSocialProvider.prototype.onMessage = function(finishLogin, msg) {
 };
 
 RadiatusSocialProvider.prototype.err = function(code) {
+  "use strict";
   var err = {
     errcode: code,
     message: this.social.ERRCODE[code]
@@ -333,5 +344,5 @@ RadiatusSocialProvider.prototype.err = function(code) {
 
 /** REGISTER PROVIDER **/
 if (typeof freedom !== 'undefined') {
-  freedom.social().provideAsynchronous(RadiatusSocialProvider);
+  freedom().provideAsynchronous(RadiatusSocialProvider);
 }

@@ -4,6 +4,7 @@
     "transportTTL": 10000
   },
   "webserver": {
+    "port": 8082,
     "radiatusSecret": "secret"
   },
   "log": {
