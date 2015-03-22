@@ -164,7 +164,7 @@ gulp.task("node_integration", [ "prep_integration" ], function() {
 gulp.task("build", [ "lint", "copy_manifests", "build_providers" ]);
 gulp.task("prep_integration", [ "build", "build_integration", "start_server" ]);
 gulp.task("test", function() {
-  "use strict";
+  "use strict"; // karma & node in parallel, stop_server afterwards
   runSequence([ "karma_integration", "node_integration" ], "stop_server" );
 });
 gulp.task("debug", [ "start_server", "karma_watch_integration" ]);
