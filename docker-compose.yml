@@ -1,0 +1,14 @@
+web:
+  build: .
+  command: npm start
+  ports:
+    - "8082:8082"
+  volumes:
+    - .:/radiatus-providers
+  links:
+    - mongo
+    - redis
+mongo:
+  image: mongo
+redis:
+  image: redis
