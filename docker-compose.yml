@@ -1,6 +1,6 @@
 web:
   build: .
-  command: npm start
+  command: npm run docker
   ports:
     - "8082:8082"
   volumes:

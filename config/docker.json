@@ -1,0 +1,5 @@
+{
+  "database": {
+    "mongoURL": "mongodb://mongo:27017/radiatus-providers"
+  }
+}
