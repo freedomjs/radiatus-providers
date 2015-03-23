@@ -17,7 +17,6 @@
   },
   "scripts": {
     "start": "node index.js",
-    "docker": "export NODE_ENV=docker; node index.js",
     "debug": "supervisor -i node_modules/ -- index.js",
     "test": "gulp default"
   },
