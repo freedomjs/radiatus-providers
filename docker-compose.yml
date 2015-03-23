@@ -1,0 +1,16 @@
+web:
+  build: .
+  command: npm start
+  environment:
+    - NODE_ENV=docker
+  ports:
+    - 8082:8082
+  volumes:
+    - .:/radiatus-providers
+  links:
+    - mongo
+    - redis
+mongo:
+  image: mongo
+redis:
+  image: redis
