@@ -1,6 +1,6 @@
 web:
   build: .
-  command: npm test
+  command: npm start
   environment:
     - NODE_ENV=docker
   ports:
