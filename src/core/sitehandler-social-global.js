@@ -71,8 +71,8 @@ GlobalSocialSiteHandler.prototype.broadcastStatus = function(username, online) {
           'online': online
         }));
       } catch (e) {
-        this.logger.error('broadcastStatus: failed to send message to ' + k);
-        this.logger.error(e);
+        this.logger.warn('broadcastStatus: failed to send message to ' + k);
+        this.logger.warn(e);
       }
     }
   }
@@ -87,19 +87,25 @@ GlobalSocialSiteHandler.prototype._onMessage = function(username, msg) {
   this.logger.debug(username+'._onMessage: enter');
   try {
     var parsedMsg = JSON.parse(msg);
-    if (this.clients.hasOwnProperty(parsedMsg.to)) {
-      this.clients[parsedMsg.to].send(JSON.stringify({
-        'cmd': 'message',
-        'from': username,
-        'msg': parsedMsg.msg
-      }));
-      this.logger.debug(username+'._onMessage: message forwarded to ' + parsedMsg.to);
-    } else {
-      this.logger.error(username+'._onMessage: message not sent, no connection to ' + parsedMsg.to);
+    if (!parsedMsg.hasOwnProperty("cmd")) {
+      this.logger.warn(username+"._onMessage: malformed message: "+msg);
+    } else if (parsedMsg.cmd === "ping") {
+      this.clients[username].send(JSON.stringify({ cmd: "pong" }));
+    } else if (parsedMsg.cmd === "send") {
+      if (this.clients.hasOwnProperty(parsedMsg.to)) {
+        this.clients[parsedMsg.to].send(JSON.stringify({
+          'cmd': 'message',
+          'from': username,
+          'msg': parsedMsg.msg
+        }));
+        this.logger.debug(username+'._onMessage: message forwarded to ' + parsedMsg.to);
+      } else {
+        this.logger.error(username+'._onMessage: message not sent, no connection to ' + parsedMsg.to);
+      }
     }
   } catch (e) {
-    this.logger.error(username+'._onMessage: Failed forwarding message, '+e.message);
-    //this.logger.error(e);
+    this.logger.error(username+'._onMessage: failed handling message: '+msg);
+    this.logger.error(e);
   }
 
   this.logger.trace(username+'._onMessage: exit');
