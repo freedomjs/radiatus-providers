@@ -1,4 +1,4 @@
-/*globals freedom:true, DEBUG */
+/*globals freedom:true */
 /*jslint node:true, browser:true */
 
 /**
@@ -16,6 +16,9 @@
  * @param {WebSocket} webSocket Alternative webSocket implementation for tests
  **/
 var DEBUGLOGGING = false;
+var WS_URL = 'ws://localhost:8082/route/';
+//var WS_URL = 'wss://data.radiatus.io/route/';
+var WS_QUERYSTR = '?freedomAPI=social';
 var KEEPALIVE = 30000; // milliseconds
 
 function RadiatusSocialProvider(dispatchEvent, webSocket) {
@@ -23,15 +26,6 @@ function RadiatusSocialProvider(dispatchEvent, webSocket) {
   this.dispatchEvent = dispatchEvent;
 
   this.websocket = freedom["core.websocket"] || webSocket;
-  if (typeof DEBUG !== 'undefined' && DEBUG) {
-    this.WS_URL = 'ws://localhost:8082/route/';
-    this.WS_QUERYSTR = '?freedomAPI=social';
-  } else {
-    this.WS_URL = 'wss://data.radiatus.io/route/';
-    // TBD where this sits in production
-    this.WS_URL = 'ws://localhost:8082/route/';
-    this.WS_QUERYSTR = '?freedomAPI=social';
-  }
   this.social= freedom();
 
   this.conn = null;     // Web Socket
@@ -104,7 +98,7 @@ RadiatusSocialProvider.prototype.login = function(loginOpts, continuation) {
       typeof loginOpts.agent !== 'undefined') {
     agent = loginOpts.agent.replace(/[^a-z0-9]/gi, '');   
   }
-  var url = this.WS_URL + agent + this.WS_QUERYSTR;
+  var url = WS_URL + agent + WS_QUERYSTR;
   this.TRACE('login', 'connecting to '+url);
   this.conn = this.websocket(url);
   // Save the continuation until we get a status message for
