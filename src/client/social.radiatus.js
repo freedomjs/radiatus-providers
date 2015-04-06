@@ -1,4 +1,4 @@
-/*globals freedom:true, DEBUG */
+/*globals freedom:true */
 /*jslint node:true, browser:true */
 
 /**
@@ -16,25 +16,21 @@
  * @param {WebSocket} webSocket Alternative webSocket implementation for tests
  **/
 var DEBUGLOGGING = false;
+var WS_URL = 'ws://localhost:8082/route/';
+//var WS_URL = 'wss://data.radiatus.io/route/';
+var WS_QUERYSTR = '?freedomAPI=social';
+var KEEPALIVE = 30000; // milliseconds
 
 function RadiatusSocialProvider(dispatchEvent, webSocket) {
   "use strict";
   this.dispatchEvent = dispatchEvent;
 
   this.websocket = freedom["core.websocket"] || webSocket;
-  if (typeof DEBUG !== 'undefined' && DEBUG) {
-    this.WS_URL = 'ws://localhost:8082/route/';
-    this.WS_QUERYSTR = '?freedomAPI=social';
-  } else {
-    this.WS_URL = 'wss://data.radiatus.io/route/';
-    // TBD where this sits in production
-    this.WS_URL = 'ws://localhost:8082/route/';
-    this.WS_QUERYSTR = '?freedomAPI=social';
-  }
   this.social= freedom();
 
   this.conn = null;     // Web Socket
   this.userId = null;   // userId of this user
+  this._keepAliveInterval = null;
   
   //Note that in this.websocket, there is a 1-1 relationship between user and client
   this.users = {};    // List of seen users (<user_profile>)
@@ -102,7 +98,7 @@ RadiatusSocialProvider.prototype.login = function(loginOpts, continuation) {
       typeof loginOpts.agent !== 'undefined') {
     agent = loginOpts.agent.replace(/[^a-z0-9]/gi, '');   
   }
-  var url = this.WS_URL + agent + this.WS_QUERYSTR;
+  var url = WS_URL + agent + WS_QUERYSTR;
   this.TRACE('login', 'connecting to '+url);
   this.conn = this.websocket(url);
   // Save the continuation until we get a status message for
@@ -117,8 +113,11 @@ RadiatusSocialProvider.prototype.login = function(loginOpts, continuation) {
     this.conn = null;
     this.TRACE('this.conn.on', 'onClose event fired');
     this.changeRoster(this.userId, false);
+    clearInterval(this._keepAliveInterval);
   }.bind(this, finishLogin));
 
+  // Start keepalive
+  this._keepAliveInterval = setInterval(this._keepAlive.bind(this), KEEPALIVE);
 };
 
 /**
@@ -198,7 +197,7 @@ RadiatusSocialProvider.prototype.sendMessage = function(to, msg, continuation) {
     return;
   }
 
-  this.conn.send({text: JSON.stringify({to: to, msg: msg})});
+  this.conn.send({text: JSON.stringify({ cmd: "send", to: to, msg: msg })});
   this.TRACE('sendMessage', 'post send');
   continuation();
 };
@@ -324,12 +323,21 @@ RadiatusSocialProvider.prototype.onMessage = function(finishLogin, msg) {
     } else if (msg.cmd === 'roster') {
       this.TRACE('onMessage', 'roster '+msg.userId+'='+msg.online);
       this.changeRoster(msg.userId, msg.online);
+    } else if (msg.cmd === "pong") {
+      this.TRACE('onMessage', JSON.stringify(msg));
     // No idea what this message is, but let's keep track of who it's from
     } else if (msg.from) {
       this.changeRoster(msg.from, true);
     }
   } catch (e) {
     this.ERROR('onMessage', 'error handling '+msg.text, e);
+  }
+};
+
+RadiatusSocialProvider.prototype._keepAlive = function() {
+  "use strict";
+  if (this.conn !== null) {
+    this.conn.send({text: JSON.stringify({ cmd: "ping" })});
   }
 };
 
@@ -341,6 +349,7 @@ RadiatusSocialProvider.prototype.err = function(code) {
   };
   return err;
 };
+
 
 /** REGISTER PROVIDER **/
 if (typeof freedom !== 'undefined') {
