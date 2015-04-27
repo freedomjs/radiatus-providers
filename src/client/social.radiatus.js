@@ -16,7 +16,7 @@
  * @param {WebSocket} webSocket Alternative webSocket implementation for tests
  **/
 var DEBUGLOGGING = false;
-var WS_URL = 'ws://localhost:8082/route/';
+var WS_URL = 'wss://localhost:8082/route/';
 //var WS_URL = 'wss://data.radiatus.io/route/';
 var WS_QUERYSTR = '?freedomAPI=social';
 var KEEPALIVE = 30000; // milliseconds
