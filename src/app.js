@@ -104,7 +104,7 @@ wss.on("connection", function(ws) {
       siteHandlers[appid] = new GlobalSocialSiteHandler(appid);
     }
   } else { //Default is anonymous social
-    username = charlatan.Name.name();
+    username = charlatan.Name.firstName();
     appid = "SocialAnon-" + origin + parsedUrl.pathname;
     if (!siteHandlers.hasOwnProperty(appid)) {
       siteHandlers[appid] = new GlobalSocialSiteHandler(appid);
