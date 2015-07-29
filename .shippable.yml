@@ -16,5 +16,8 @@ install:
   - "google-chrome --version"
   - "firefox -v"
   - "shippable_retry npm install"
+services:
+  - mongodb
+  - redis
 script:
   - "gulp test"
