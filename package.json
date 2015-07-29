@@ -18,7 +18,7 @@
   "scripts": {
     "start": "node index.js",
     "debug": "supervisor -i node_modules/ -- index.js",
-    "test": "gulp default"
+    "test": "gulp test"
   },
   "main": "index.js",
   "devDependencies": {
