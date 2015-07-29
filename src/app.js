@@ -24,7 +24,7 @@ var app = express();
 var server = http.createServer(app);
 var wss = new WebSocketServer({ server: server });
 var siteHandlers = {};
-charlatan.setLocale("en-us");
+charlatan.setLocale("en-US");
 mongoose.connection.on("error", function(e) {
   "use strict";
   logger.error("Mongoose error");
