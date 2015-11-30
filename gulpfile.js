@@ -31,6 +31,7 @@ var through = require("through");
 var nodeStatic = require("node-static");
 var http = require("http");
 var browserify = require("browserify");
+var gulpBrowser = require("gulp-browser");
 var source = require("vinyl-source-stream");
 var buffer = require("vinyl-buffer");
 var transform = require("vinyl-transform");
@@ -99,13 +100,9 @@ gulp.task("lint", function() {
 
 gulp.task("build_integration", function() {
   "use strict";
-  // Browserify the integration test
-  var browserified = transform(function(filename) {
-    var b = browserify(filename);
-    return b.bundle();
-  });
   return gulp.src([ "spec/integration.spec.js" ])
-    .pipe(browserified)
+  //.pipe(browserified)
+    .pipe(gulpBrowser.browserify())
     .pipe(gulp.dest("./build/"));
 });
 
@@ -156,6 +153,7 @@ gulp.task("karma_integration", [ "prep_integration" ], karma_task.bind(this, "ru
 gulp.task("karma_watch_integration", [ "prep_integration" ], karma_task.bind(this, "watch"));
 gulp.task("node_integration", [ "prep_integration" ], function() {
   "use strict";
+  console.log("GOT TO NODE INTEGRATION");
   return gulp.src("spec/integration.spec.js").pipe(jasmine({
     verbose: true
   }));
