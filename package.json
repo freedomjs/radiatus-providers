@@ -18,17 +18,19 @@
   "scripts": {
     "start": "node index.js",
     "debug": "supervisor -i node_modules/ -- index.js",
-    "test": "gulp default"
+    "test": "gulp test"
   },
   "main": "index.js",
   "devDependencies": {
-    "browserify": "<=10.2.4",
+    "browserify": "^12.0.1",
     "es5-shim": "^4.1.7",
     "es6-promise": "^2.3.0",
     "freedom": "^0.6.25",
     "freedom-for-node": "^0.2.17",
     "fs-extra": "~0.22.1",
     "gulp": "~3.9.0",
+    "gulp-browser": "0.0.14",
+    "gulp-jasmine": "^2.0.1",
     "gulp-jshint": "~1.11.2",
     "gulp-karma": "0.0.4",
     "gulp-sourcemaps": "~1.5.2",
@@ -41,11 +43,10 @@
     "karma-story-reporter": "^0.3.1",
     "karma-unicorn-reporter": "^0.1.4",
     "node-static": "~0.7.6",
+    "run-sequence": "^1.1.1",
     "vinyl-buffer": "~1.0.0",
     "vinyl-source-stream": "~1.1.0",
-    "vinyl-transform": "^1.0.0",
-    "run-sequence": "^1.1.1",
-    "gulp-jasmine": "^2.0.1"
+    "vinyl-transform": "^1.0.0"
   },
   "dependencies": {
     "charlatan": "^1.0.0",
