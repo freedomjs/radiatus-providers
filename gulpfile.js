@@ -101,7 +101,6 @@ gulp.task("lint", function() {
 gulp.task("build_integration", function() {
   "use strict";
   return gulp.src([ "spec/integration.spec.js" ])
-  //.pipe(browserified)
     .pipe(gulpBrowser.browserify())
     .pipe(gulp.dest("./build/"));
 });
