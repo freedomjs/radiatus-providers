@@ -153,7 +153,6 @@ gulp.task("karma_integration", [ "prep_integration" ], karma_task.bind(this, "ru
 gulp.task("karma_watch_integration", [ "prep_integration" ], karma_task.bind(this, "watch"));
 gulp.task("node_integration", [ "prep_integration" ], function() {
   "use strict";
-  console.log("GOT TO NODE INTEGRATION");
   return gulp.src("spec/integration.spec.js").pipe(jasmine({
     verbose: true
   }));
